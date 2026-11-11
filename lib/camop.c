@@ -256,6 +256,20 @@ static struct camop cam_switch[] = {
      pwc_open, pwc_close,
      pwc_get_frame, pwc_msync, pwc_wait_frame},
 
+    {270, "uvcvideo", "c270", "Logitech_C270", "Logitech Webcam C270",
+     uvc_get, uvc_set, uvc_LavaRnd,
+     uvc_check, uvc_print,
+     uvc_usage, uvc_argv,
+     uvc_open, uvc_close,
+     uvc_get_frame, uvc_msync, uvc_wait_frame},
+
+    {0, "uvcvideo", "uvcgeneric", "UVC_generic", "Any UVC webcam (uncalibrated)",
+     uvc_get, uvc_set, uvc_LavaRnd,
+     uvc_check, uvc_print,
+     uvc_usage, uvc_argv,
+     uvc_open, uvc_close,
+     uvc_get_frame, uvc_msync, uvc_wait_frame},
+
     {513, "ov511", "dsbc100", "DSB-C100", "D-Link DSB-C100 camera",
      ov511_get, ov511_set, ov511_LavaRnd,
      ov511_check, ov511_print,

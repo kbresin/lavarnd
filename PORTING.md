@@ -3,6 +3,78 @@
 This is a running log of what happens when the code is built and run on a
 current system. Newest entries go at the top.
 
+## 2026-11-11 — UVC webcam driver (Logitech C270)
+
+Most current webcams are USB Video Class (UVC) cameras run by `uvcvideo`, not
+`pwc`. This adds a LavaRnd driver for them and a preset for a Logitech
+Webcam C270 (USB `046d:0825`).
+
+**Shared V4L2 code.** The generic parts of the `pwc` port moved verbatim from
+`lib/pwc_drvr.c` into `lib/v4l2cam.c` (`LavaRnd/v4l2cam.h`), renamed
+`v4l2cam_*`: control access, scaling, mmap streaming, frame get/release,
+waiting for a frame, and releasing buffers. `pwc_get_frame`, `pwc_msync` and
+`pwc_wait_frame` are now thin wrappers around them. `pwc_open()` also now
+checks it is talking to the `pwc` driver before changing the format, so the
+wrong camera type gets "wrong camera type" instead of a misleading palette
+error. **The `pwc` driver needs a retest on the QuickCam** once it's plugged
+back in; the refactor was only compile-tested.
+
+**`lib/uvc_drvr.c`** (`LavaRnd/uvc_state.h`, `LavaRnd/uvc_drvr.h`):
+
+- Captures uncompressed YUYV. If the camera is in another format (such as
+  MJPEG), `uvc_open()` switches it to YUYV. Upstream's `palette.c` already
+  knows YUYV, and as upstream decided, the whole buffer (luma and chroma) is
+  used as LavaRnd input.
+- Settings are kept in each V4L2 control's own units. There is no legacy scale
+  to stay compatible with, unlike `pwc`. Values are clamped to the camera's
+  range, and controls a camera doesn't offer are ignored. Supported:
+  brightness, contrast, saturation, sharpness, gain, exposure (100 µs units;
+  `-1` auto, `-2` one frame period), the "auto exposure may lower the frame
+  rate" option, white balance mode and temperature, backlight compensation,
+  power-line filter, size and frame rate.
+- `uvc_identify()` accepts only V4L2 capture devices run by `uvcvideo`, so
+  the separate metadata node UVC cameras create (`/dev/video1` here) is
+  rejected as "not a camera".
+- Most UVC cameras, including the C270, can't do `read()`, so `-M` fails with
+  "cannot read, try mmap instead".
+- No EEPROM save/restore, which UVC doesn't have.
+
+Two camera types: **`c270`** (model 270) and **`uvcgeneric`** (model 0). The
+generic one maximises gain, sharpness and saturation, exposes for a full frame
+and turns off automatic processing, but leaves brightness and contrast for
+the user to tune. It has sanity checks off, as a starting point for
+calibrating another camera.
+
+### Choosing the C270 preset (lens covered)
+
+At default settings a covered C270 gives nothing useful: auto exposure raises
+gain and exposure, and every pixel still sits at video black (16). Sweeping
+controls in manual exposure, and measuring frame-to-frame (temporal) noise:
+
+- After streaming starts, the C270 sends about **23 all-black frames
+  (0.8 s)**. The warm-up discards them, but measurements must skip them; an
+  early sweep that didn't gave nonsense.
+- **Fixed-pattern noise dominates.** Without sharpening, each pixel changes by
+  only 1–4 levels between frames (about 2–4 bits), while the spatial pattern
+  has an SD of 6–24, so consecutive frames are 98% correlated. Maximum
+  sharpening amplifies the temporal noise much more than the pattern.
+- Brightness lifts the noise off black. Contrast above about 128 or
+  brightness below about 224 clips it again.
+- Saturation 255 adds about 4.9 bits of temporal noise per chroma sample.
+
+Chosen preset: YUYV 160×120 at 30 fps, manual exposure 333 (one frame period,
+33.3 ms), dynamic frame rate off, gain 255, brightness 240, contrast 128,
+sharpness 255, saturation 255, auto white balance, backlight compensation and
+power-line filter off. Result: luma centred near 123, no clipping, about
+5.7 bits/pixel of temporal noise in luma and 4.9 in chroma. Verified that
+`-L` applies all of it starting from factory defaults and from MJPEG
+640×480.
+
+The frame statistics LavaRnd's sanity checks use differ a lot from the
+QuickCam's, mostly because the chroma bytes cluster: about 6–7 values fill
+half of each buffer (the QuickCam needed 27), and about 26% of bits change
+between frames (QuickCam: 42%). Calibration sets the limits for this.
+
 ## 2026-11-11 — camsanity statistics fixed
 
 `tool/camsanity.c`:

@@ -46,6 +46,7 @@
  */
 #include "LavaRnd/pwc_state.h"
 #include "LavaRnd/ov511_state.h"
+#include "LavaRnd/uvc_state.h"
 #include "LavaRnd/have/cam_videodev.h"
 
 
@@ -55,6 +56,7 @@
 union lavacam {
     struct pwc_state pwc;	/* pwc - Philips Web Camera */
     struct ov511_state ov511;	/* ov511 - OmniVision OV511 Web Camera */
+    struct uvc_state uvc;	/* uvc - USB Video Class (uvcvideo) camera */
 };
 
 
@@ -128,6 +130,7 @@ struct lavacam_flag {
  */
 #include "LavaRnd/pwc_drvr.h"
 #include "LavaRnd/ov511_drvr.h"
+#include "LavaRnd/uvc_drvr.h"
 
 
 /*

@@ -70,7 +70,7 @@ Build and runtime findings are recorded in [`PORTING.md`](PORTING.md).
 | Commit / tag    | What it is                                     |
 |-----------------|------------------------------------------------|
 | `upstream-0.1.3`| The unmodified 0.1.3 release, as downloaded (see below) |
-| `main`          | Builds on Rocky 9 with `make all CC_WARN=-Wall`. Perl has been removed. The `pwc` camera driver now uses V4L2, and the tools capture frames and produce random output from a Logitech QuickCam Pro 4000. The `lavapool` daemon runs unprivileged as a systemd user service. A pure-Python client library is in [`python/`](python/), and `trickle` has been rewritten in Python |
+| `main`          | Builds on Rocky 9 with `make all CC_WARN=-Wall`. Perl has been removed. The `pwc` camera driver now uses V4L2, and a new `uvc` driver supports ordinary USB webcams. Tested with a Logitech QuickCam Pro 4000 (`pwc`) and a Logitech C270 (UVC). The `lavapool` daemon runs unprivileged as a systemd user service. A pure-Python client library is in [`python/`](python/), and `trickle` has been rewritten in Python |
 
 The upstream release was imported from
 `LavaRnd-0.1.3.tar.gz`
@@ -85,11 +85,8 @@ documents the Perl API and `trickle`, which this fork has removed.
 
 ## To do
 
-- **UVC webcam support.** Most current webcams use the standard `uvcvideo`
-  driver, not `pwc`. This needs a new LavaRnd camera driver (YUYV capture,
-  the standard V4L2 exposure and gain controls), then calibration on a real
-  UVC camera. Waiting until a UVC camera can be plugged in in place of the
-  QuickCam.
+- **Retest the QuickCam (`pwc`) driver** after the V4L2 code moved into
+  `lib/v4l2cam.c` for the UVC driver. So far it has only been compile-tested.
 - **Credit entropy as root.** An optional `trickle` mode using the
   `RNDADDENTROPY` ioctl, plus a system-wide install. Planned for after the
   development stage.
@@ -108,7 +105,9 @@ Build, then install `lavapool` as a systemd user service for your account:
 
 Use the camera type that matches your camera
 (`LD_LIBRARY_PATH=lib/shared tool/camset list all`). `qcpro4000` is the
-Logitech QuickCam Pro 4000, calibrated for this fork; see `PORTING.md`.
+Logitech QuickCam Pro 4000 and `c270` the Logitech Webcam C270, both
+calibrated for this fork; see `PORTING.md`. Other UVC webcams can start from
+`uvcgeneric`, which has its sanity checks off until calibrated.
 
 This installs `lavapool` and its libraries under `~/.local` and writes a
 config file to `~/.config/LavaRnd/cfg.lavapool`. The daemon listens on

@@ -64,6 +64,8 @@
 #include <sys/ioctl.h>
 #include <linux/videodev2.h>
 
+#include "LavaRnd/v4l2cam.h"
+
 
 /*
  * Special PWC driver debugging - not related to LavaRnd debugging
@@ -132,173 +134,6 @@
 #define PWC_CID_SAVE_USER	PWC_CID_CUSTOM(5)
 #define PWC_CID_RESTORE_USER	PWC_CID_CUSTOM(6)
 
-#define PWC_V4L2_BUFS (4)	/* number of V4L2 mmap buffers to request */
-#define PWC_DQBUF_TRIES (8)	/* max errored buffers to skip per frame */
-
-/* pwc_ctrl_set_scaled() return values */
-#define PWC_CTRL_OK (0)		/* control was set */
-#define PWC_CTRL_MISSING (-1)	/* driver does not offer this control */
-#define PWC_CTRL_FAILED (-2)	/* control exists but could not be set */
-
-
-/*
- * pwc_xioctl - ioctl that retries when interrupted by a signal
- */
-static int
-pwc_xioctl(int fd, unsigned long request, void *arg)
-{
-    int ret;
-
-    do {
-	ret = ioctl(fd, request, arg);
-    } while (ret < 0 && errno == EINTR);
-    return ret;
-}
-
-
-/*
- * pwc_ctrl_query - look up a V4L2 control
- *
- * returns:
- *      0 ==> control exists and is enabled, <0 ==> not available
- */
-static int
-pwc_ctrl_query(int fd, __u32 id, struct v4l2_queryctrl *q)
-{
-    memset(q, 0, sizeof(*q));
-    q->id = id;
-    if (pwc_xioctl(fd, VIDIOC_QUERYCTRL, q) < 0) {
-	return -1;
-    }
-    if (q->flags & V4L2_CTRL_FLAG_DISABLED) {
-	return -1;
-    }
-    return 0;
-}
-
-
-/*
- * pwc_ctrl_get - get the raw value of a V4L2 control
- *
- * returns:
- *      0 ==> OK, <0 ==> error
- */
-static int
-pwc_ctrl_get(int fd, __u32 id, int *val)
-{
-    struct v4l2_control ctrl;
-
-    memset(&ctrl, 0, sizeof(ctrl));
-    ctrl.id = id;
-    if (pwc_xioctl(fd, VIDIOC_G_CTRL, &ctrl) < 0) {
-	return -1;
-    }
-    *val = ctrl.value;
-    return 0;
-}
-
-
-/*
- * pwc_ctrl_set - set the raw value of a V4L2 control
- *
- * returns:
- *      PWC_CTRL_OK, PWC_CTRL_MISSING or PWC_CTRL_FAILED
- */
-static int
-pwc_ctrl_set(int fd, __u32 id, int val)
-{
-    struct v4l2_queryctrl q;
-    struct v4l2_control ctrl;
-
-    if (pwc_ctrl_query(fd, id, &q) < 0) {
-	return PWC_CTRL_MISSING;
-    }
-    memset(&ctrl, 0, sizeof(ctrl));
-    ctrl.id = id;
-    ctrl.value = val;
-    if (pwc_xioctl(fd, VIDIOC_S_CTRL, &ctrl) < 0) {
-	return PWC_CTRL_FAILED;
-    }
-    return PWC_CTRL_OK;
-}
-
-
-/*
- * pwc_scale_to_ctrl - map a value in [0, full] onto a control's range
- */
-static int
-pwc_scale_to_ctrl(int val, int full, const struct v4l2_queryctrl *q)
-{
-    long long span = (long long)q->maximum - (long long)q->minimum;
-    long long v;
-
-    if (val < 0) {
-	val = 0;
-    } else if (val > full) {
-	val = full;
-    }
-    v = q->minimum + ((long long)val * span + full / 2) / full;
-    if (q->step > 1) {
-	v = q->minimum + ((v - q->minimum + q->step / 2) / q->step) * q->step;
-    }
-    if (v > q->maximum) {
-	v = q->maximum;
-    }
-    return (int)v;
-}
-
-
-/*
- * pwc_scale_from_ctrl - map a control value onto [0, full]
- */
-static int
-pwc_scale_from_ctrl(int val, int full, const struct v4l2_queryctrl *q)
-{
-    long long span = (long long)q->maximum - (long long)q->minimum;
-
-    if (span <= 0) {
-	return 0;
-    }
-    return (int)((((long long)val - q->minimum) * full + span / 2) / span);
-}
-
-
-/*
- * pwc_ctrl_get_scaled - get a control value scaled onto [0, full]
- *
- * returns:
- *      0 ==> OK, <0 ==> control not available
- */
-static int
-pwc_ctrl_get_scaled(int fd, __u32 id, int full, int *out)
-{
-    struct v4l2_queryctrl q;
-    int val;
-
-    if (pwc_ctrl_query(fd, id, &q) < 0 || pwc_ctrl_get(fd, id, &val) < 0) {
-	return -1;
-    }
-    *out = pwc_scale_from_ctrl(val, full, &q);
-    return 0;
-}
-
-
-/*
- * pwc_ctrl_set_scaled - set a control from a value in [0, full]
- *
- * returns:
- *      PWC_CTRL_OK, PWC_CTRL_MISSING or PWC_CTRL_FAILED
- */
-static int
-pwc_ctrl_set_scaled(int fd, __u32 id, int full, int val)
-{
-    struct v4l2_queryctrl q;
-
-    if (pwc_ctrl_query(fd, id, &q) < 0) {
-	return PWC_CTRL_MISSING;
-    }
-    return pwc_ctrl_set(fd, id, pwc_scale_to_ctrl(val, full, &q));
-}
 
 
 /*
@@ -322,7 +157,7 @@ pwc_identify(int cam_fd, struct v4l2_capability *vcap, int *camtype)
     __u32 caps;		/* capabilities of this device node */
 
     memset(vcap, 0, sizeof(*vcap));
-    if (pwc_xioctl(cam_fd, VIDIOC_QUERYCAP, vcap) < 0) {
+    if (v4l2cam_xioctl(cam_fd, VIDIOC_QUERYCAP, vcap) < 0) {
 	return LAVACAM_ERR_NOCAM;
     }
     if (vcap->capabilities & V4L2_CAP_DEVICE_CAPS) {
@@ -342,122 +177,6 @@ pwc_identify(int cam_fd, struct v4l2_capability *vcap, int *camtype)
 	*camtype < 0) {
 	*camtype = 0;
     }
-    return LAVACAM_ERR_OK;
-}
-
-
-/*
- * pwc_stream_stop - stop V4L2 streaming and release mmapped buffers
- */
-static void
-pwc_stream_stop(int cam_fd, struct opsize *siz)
-{
-    struct v4l2_requestbuffers req;	/* buffer release request */
-    enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    int i;
-
-    (void)pwc_xioctl(cam_fd, VIDIOC_STREAMOFF, &type);
-    for (i = 0; i < siz->nbufs; ++i) {
-	if (siz->buf_start[i] != NULL && siz->buf_start[i] != MAP_FAILED) {
-	    (void)munmap(siz->buf_start[i], siz->buf_len[i]);
-	}
-	siz->buf_start[i] = NULL;
-	siz->buf_len[i] = 0;
-    }
-    siz->nbufs = 0;
-    siz->cur_buf = -1;
-    memset(&req, 0, sizeof(req));
-    req.count = 0;
-    req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    req.memory = V4L2_MEMORY_MMAP;
-    (void)pwc_xioctl(cam_fd, VIDIOC_REQBUFS, &req);
-}
-
-
-/*
- * pwc_stream_start - mmap V4L2 capture buffers, queue them, start streaming
- *
- * given:
- *      cam_fd      open camera descriptor
- *      siz         pointer to operation size and buffer structure
- *
- * returns:
- *      0 ==> OK, <0 ==> error
- *
- * NOTE: On success siz->image and siz->chaos point into the first buffer.
- *       They are moved to the most recent frame by pwc_get_frame().
- */
-static int
-pwc_stream_start(int cam_fd, struct opsize *siz)
-{
-    struct v4l2_requestbuffers req;	/* buffer allocation request */
-    struct v4l2_buffer buf;		/* buffer description */
-    enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    int i;
-
-    siz->nbufs = 0;
-    siz->cur_buf = -1;
-
-    /*
-     * ask the driver for capture buffers
-     */
-    memset(&req, 0, sizeof(req));
-    req.count = PWC_V4L2_BUFS;
-    req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    req.memory = V4L2_MEMORY_MMAP;
-    if (pwc_xioctl(cam_fd, VIDIOC_REQBUFS, &req) < 0 || req.count < 1) {
-	DBG(LAVACAM_ERR_NOMMAP);
-	return LAVACAM_ERR_NOMMAP;
-    }
-    if (req.count > VIDEO_MAX_FRAME) {
-	req.count = VIDEO_MAX_FRAME;
-    }
-
-    /*
-     * mmap and queue each buffer
-     */
-    for (i = 0; i < (int)req.count; ++i) {
-	memset(&buf, 0, sizeof(buf));
-	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	buf.memory = V4L2_MEMORY_MMAP;
-	buf.index = i;
-	if (pwc_xioctl(cam_fd, VIDIOC_QUERYBUF, &buf) < 0) {
-	    pwc_stream_stop(cam_fd, siz);
-	    DBG(LAVACAM_ERR_NOMMAP);
-	    return LAVACAM_ERR_NOMMAP;
-	}
-	if ((int)buf.length < siz->framesize) {
-	    pwc_stream_stop(cam_fd, siz);
-	    DBG(LAVACAM_ERR_NOSIZE);
-	    return LAVACAM_ERR_NOSIZE;
-	}
-	siz->buf_len[i] = buf.length;
-	siz->buf_start[i] = mmap(NULL, buf.length, PROT_READ, MAP_SHARED,
-				 cam_fd, buf.m.offset);
-	siz->nbufs = i + 1;
-	if (siz->buf_start[i] == MAP_FAILED) {
-	    siz->buf_start[i] = NULL;
-	    pwc_stream_stop(cam_fd, siz);
-	    DBG(LAVACAM_ERR_NOMMAP);
-	    return LAVACAM_ERR_NOMMAP;
-	}
-	if (pwc_xioctl(cam_fd, VIDIOC_QBUF, &buf) < 0) {
-	    pwc_stream_stop(cam_fd, siz);
-	    DBG(LAVACAM_ERR_NOMMAP);
-	    return LAVACAM_ERR_NOMMAP;
-	}
-    }
-
-    /*
-     * start capturing
-     */
-    if (pwc_xioctl(cam_fd, VIDIOC_STREAMON, &type) < 0) {
-	pwc_stream_stop(cam_fd, siz);
-	DBG(LAVACAM_ERR_NOMMAP);
-	return LAVACAM_ERR_NOMMAP;
-    }
-    siz->image = siz->buf_start[0];
-    siz->chaos = (u_int8_t *)siz->image + siz->mmap_lavaoff;
     return LAVACAM_ERR_OK;
 }
 
@@ -716,7 +435,7 @@ pwc_opsize(int cam_fd, union lavacam *u_cam_p, struct opsize *siz,
      */
     memset(&fmt, 0, sizeof(fmt));
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    if (pwc_xioctl(cam_fd, VIDIOC_G_FMT, &fmt) < 0) {
+    if (v4l2cam_xioctl(cam_fd, VIDIOC_G_FMT, &fmt) < 0) {
 	DBG(LAVACAM_ERR_GETPARAM);
 	return LAVACAM_ERR_GETPARAM;
     }
@@ -734,7 +453,7 @@ pwc_opsize(int cam_fd, union lavacam *u_cam_p, struct opsize *siz,
 	return LAVACAM_ERR_NOSIZE;
     }
     cam->framesize = ret;
-    cam->frames = PWC_V4L2_BUFS;
+    cam->frames = V4L2CAM_BUFS;
     cam->bufsize = cam->frames * cam->framesize;
 
     /*
@@ -857,7 +576,7 @@ pwc_get(int cam_fd, union lavacam *u_cam_p)
 	memset(&fsize, 0, sizeof(fsize));
 	fsize.index = i;
 	fsize.pixel_format = V4L2_PIX_FMT_YUV420;
-	if (pwc_xioctl(cam_fd, VIDIOC_ENUM_FRAMESIZES, &fsize) < 0) {
+	if (v4l2cam_xioctl(cam_fd, VIDIOC_ENUM_FRAMESIZES, &fsize) < 0) {
 	    break;
 	}
 	if (fsize.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
@@ -894,14 +613,14 @@ pwc_get(int cam_fd, union lavacam *u_cam_p)
     cam->colour = PWC_UNSET_PICT;
     cam->contrast = PWC_UNSET_PICT;
     cam->gamma = PWC_UNSET_PICT;
-    (void)pwc_ctrl_get_scaled(cam_fd, V4L2_CID_BRIGHTNESS, PWC_MAX_PICT,
+    (void)v4l2cam_ctrl_get_scaled(cam_fd, V4L2_CID_BRIGHTNESS, PWC_MAX_PICT,
 			      &cam->bright);
-    (void)pwc_ctrl_get_scaled(cam_fd, V4L2_CID_HUE, PWC_MAX_PICT, &cam->hue);
-    (void)pwc_ctrl_get_scaled(cam_fd, V4L2_CID_SATURATION, PWC_MAX_PICT,
+    (void)v4l2cam_ctrl_get_scaled(cam_fd, V4L2_CID_HUE, PWC_MAX_PICT, &cam->hue);
+    (void)v4l2cam_ctrl_get_scaled(cam_fd, V4L2_CID_SATURATION, PWC_MAX_PICT,
 			      &cam->colour);
-    (void)pwc_ctrl_get_scaled(cam_fd, V4L2_CID_CONTRAST, PWC_MAX_PICT,
+    (void)v4l2cam_ctrl_get_scaled(cam_fd, V4L2_CID_CONTRAST, PWC_MAX_PICT,
 			      &cam->contrast);
-    (void)pwc_ctrl_get_scaled(cam_fd, V4L2_CID_GAMMA, PWC_MAX_PICT,
+    (void)v4l2cam_ctrl_get_scaled(cam_fd, V4L2_CID_GAMMA, PWC_MAX_PICT,
 			      &cam->gamma);
 
     /*
@@ -912,7 +631,7 @@ pwc_get(int cam_fd, union lavacam *u_cam_p)
      */
     memset(&fmt, 0, sizeof(fmt));
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    if (pwc_xioctl(cam_fd, VIDIOC_G_FMT, &fmt) < 0) {
+    if (v4l2cam_xioctl(cam_fd, VIDIOC_G_FMT, &fmt) < 0) {
 	DBG(LAVACAM_ERR_GETPARAM);
 	return LAVACAM_ERR_GETPARAM;
     }
@@ -931,7 +650,7 @@ pwc_get(int cam_fd, union lavacam *u_cam_p)
      */
     memset(&parm, 0, sizeof(parm));
     parm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    if (pwc_xioctl(cam_fd, VIDIOC_G_PARM, &parm) == 0 &&
+    if (v4l2cam_xioctl(cam_fd, VIDIOC_G_PARM, &parm) == 0 &&
 	parm.parm.capture.timeperframe.numerator > 0) {
 	cam->fps = parm.parm.capture.timeperframe.denominator /
 		   parm.parm.capture.timeperframe.numerator;
@@ -948,13 +667,13 @@ pwc_get(int cam_fd, union lavacam *u_cam_p)
      * get white balance
      */
     cam->white_mode = PWC_MIN_WH_BAL_MODE - 1;
-    if (pwc_ctrl_query(cam_fd, V4L2_CID_AUTO_WHITE_BALANCE, &q) == 0 &&
-	pwc_ctrl_get(cam_fd, V4L2_CID_AUTO_WHITE_BALANCE, &val) == 0) {
+    if (v4l2cam_ctrl_query(cam_fd, V4L2_CID_AUTO_WHITE_BALANCE, &q) == 0 &&
+	v4l2cam_ctrl_get(cam_fd, V4L2_CID_AUTO_WHITE_BALANCE, &val) == 0) {
 	cam->white_mode = val;
     }
-    (void)pwc_ctrl_get_scaled(cam_fd, V4L2_CID_RED_BALANCE,
+    (void)v4l2cam_ctrl_get_scaled(cam_fd, V4L2_CID_RED_BALANCE,
 			      PWC_MAX_WH_BAL_LEVEL, &cam->white_red);
-    (void)pwc_ctrl_get_scaled(cam_fd, V4L2_CID_BLUE_BALANCE,
+    (void)v4l2cam_ctrl_get_scaled(cam_fd, V4L2_CID_BLUE_BALANCE,
 			      PWC_MAX_WH_BAL_LEVEL, &cam->white_blue);
     cam->read_red = cam->white_red;
     cam->read_blue = cam->white_blue;
@@ -969,11 +688,11 @@ pwc_get(int cam_fd, union lavacam *u_cam_p)
      * get electronic sharpness (contour) value
      */
     cam->sharpness = PWC_MIN_SHARPNESS - 1;
-    if (pwc_ctrl_query(cam_fd, PWC_CID_AUTO_CONTOUR, &q) == 0 &&
-	pwc_ctrl_get(cam_fd, PWC_CID_AUTO_CONTOUR, &val) == 0 && val != 0) {
+    if (v4l2cam_ctrl_query(cam_fd, PWC_CID_AUTO_CONTOUR, &q) == 0 &&
+	v4l2cam_ctrl_get(cam_fd, PWC_CID_AUTO_CONTOUR, &val) == 0 && val != 0) {
 	cam->sharpness = PWC_AUTO_SHARPNESS;
     } else {
-	(void)pwc_ctrl_get_scaled(cam_fd, PWC_CID_CONTOUR, PWC_MAX_SHARPNESS,
+	(void)v4l2cam_ctrl_get_scaled(cam_fd, PWC_CID_CONTOUR, PWC_MAX_SHARPNESS,
 				  &cam->sharpness);
     }
 
@@ -981,8 +700,8 @@ pwc_get(int cam_fd, union lavacam *u_cam_p)
      * get back light compensation mode
      */
     cam->backlight = PWC_UNSET_BACKLIGHT;
-    if (pwc_ctrl_query(cam_fd, V4L2_CID_BACKLIGHT_COMPENSATION, &q) == 0 &&
-	pwc_ctrl_get(cam_fd, V4L2_CID_BACKLIGHT_COMPENSATION, &val) == 0) {
+    if (v4l2cam_ctrl_query(cam_fd, V4L2_CID_BACKLIGHT_COMPENSATION, &q) == 0 &&
+	v4l2cam_ctrl_get(cam_fd, V4L2_CID_BACKLIGHT_COMPENSATION, &val) == 0) {
 	cam->backlight = val;
     }
 
@@ -990,8 +709,8 @@ pwc_get(int cam_fd, union lavacam *u_cam_p)
      * get flicker suppression mode
      */
     cam->flicker = PWC_UNSET_FLICKER;
-    if (pwc_ctrl_query(cam_fd, V4L2_CID_BAND_STOP_FILTER, &q) == 0 &&
-	pwc_ctrl_get(cam_fd, V4L2_CID_BAND_STOP_FILTER, &val) == 0) {
+    if (v4l2cam_ctrl_query(cam_fd, V4L2_CID_BAND_STOP_FILTER, &q) == 0 &&
+	v4l2cam_ctrl_get(cam_fd, V4L2_CID_BAND_STOP_FILTER, &val) == 0) {
 	cam->flicker = val;
     }
 
@@ -999,8 +718,8 @@ pwc_get(int cam_fd, union lavacam *u_cam_p)
      * get dynamic noise reduction value
      */
     cam->dyn_noise = PWC_MIN_DYNNOISE - 1;
-    if (pwc_ctrl_query(cam_fd, PWC_CID_NOISE_REDUCTION, &q) == 0 &&
-	pwc_ctrl_get(cam_fd, PWC_CID_NOISE_REDUCTION, &val) == 0) {
+    if (v4l2cam_ctrl_query(cam_fd, PWC_CID_NOISE_REDUCTION, &q) == 0 &&
+	v4l2cam_ctrl_get(cam_fd, PWC_CID_NOISE_REDUCTION, &val) == 0) {
 	cam->dyn_noise = val;
     }
 
@@ -1010,11 +729,11 @@ pwc_get(int cam_fd, union lavacam *u_cam_p)
      * NOTE: Unlike the V4L1 driver, the V4L2 driver can report AGC.
      */
     cam->agc = PWC_MIN_AGC - 1;
-    if (pwc_ctrl_query(cam_fd, V4L2_CID_AUTOGAIN, &q) == 0 &&
-	pwc_ctrl_get(cam_fd, V4L2_CID_AUTOGAIN, &val) == 0 && val != 0) {
+    if (v4l2cam_ctrl_query(cam_fd, V4L2_CID_AUTOGAIN, &q) == 0 &&
+	v4l2cam_ctrl_get(cam_fd, V4L2_CID_AUTOGAIN, &val) == 0 && val != 0) {
 	cam->agc = PWC_AUTO_AGC;
     } else {
-	(void)pwc_ctrl_get_scaled(cam_fd, V4L2_CID_GAIN, PWC_MAX_AGC,
+	(void)v4l2cam_ctrl_get_scaled(cam_fd, V4L2_CID_GAIN, PWC_MAX_AGC,
 				  &cam->agc);
     }
 
@@ -1026,8 +745,8 @@ pwc_get(int cam_fd, union lavacam *u_cam_p)
      *	     automatic whenever gain is automatic.
      */
     cam->speed = PWC_MIN_SPEED - 1;
-    if (pwc_ctrl_query(cam_fd, V4L2_CID_EXPOSURE_AUTO, &q) == 0) {
-	if (pwc_ctrl_get(cam_fd, V4L2_CID_EXPOSURE_AUTO, &val) == 0 &&
+    if (v4l2cam_ctrl_query(cam_fd, V4L2_CID_EXPOSURE_AUTO, &q) == 0) {
+	if (v4l2cam_ctrl_get(cam_fd, V4L2_CID_EXPOSURE_AUTO, &val) == 0 &&
 	    val != V4L2_EXPOSURE_MANUAL) {
 	    cam->speed = PWC_AUTO_SPEED;
 	}
@@ -1035,7 +754,7 @@ pwc_get(int cam_fd, union lavacam *u_cam_p)
 	cam->speed = PWC_AUTO_SPEED;
     }
     if (cam->speed != PWC_AUTO_SPEED) {
-	(void)pwc_ctrl_get_scaled(cam_fd, V4L2_CID_EXPOSURE, PWC_MAX_SPEED,
+	(void)v4l2cam_ctrl_get_scaled(cam_fd, V4L2_CID_EXPOSURE, PWC_MAX_SPEED,
 				  &cam->speed);
     }
 
@@ -1117,8 +836,8 @@ pwc_set(int cam_fd, union lavacam *u_cam_p)
      */
 #define PWC_SET_PICT(field, id) \
     if (PWC_TEST(cam->mask, field)) { \
-	if (pwc_ctrl_set_scaled(cam_fd, (id), PWC_MAX_PICT, cam->field) == \
-	    PWC_CTRL_FAILED) { \
+	if (v4l2cam_ctrl_set_scaled(cam_fd, (id), PWC_MAX_PICT, cam->field) == \
+	    V4L2CAM_CTRL_FAILED) { \
 	    DBG(LAVACAM_ERR_SETPARAM); \
 	    return LAVACAM_ERR_SETPARAM; \
 	} \
@@ -1139,7 +858,7 @@ pwc_set(int cam_fd, union lavacam *u_cam_p)
     if (PWC_TEST(cam->mask, height) || PWC_TEST(cam->mask, width)) {
 	memset(&fmt, 0, sizeof(fmt));
 	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	if (pwc_xioctl(cam_fd, VIDIOC_G_FMT, &fmt) < 0) {
+	if (v4l2cam_xioctl(cam_fd, VIDIOC_G_FMT, &fmt) < 0) {
 	    DBG(LAVACAM_ERR_GETPARAM);
 	    return LAVACAM_ERR_GETPARAM;
 	}
@@ -1155,7 +874,7 @@ pwc_set(int cam_fd, union lavacam *u_cam_p)
 	fmt.fmt.pix.field = V4L2_FIELD_NONE;
 	fmt.fmt.pix.bytesperline = 0;
 	fmt.fmt.pix.sizeimage = 0;
-	if (pwc_xioctl(cam_fd, VIDIOC_S_FMT, &fmt) < 0) {
+	if (v4l2cam_xioctl(cam_fd, VIDIOC_S_FMT, &fmt) < 0) {
 	    DBG(LAVACAM_ERR_SETPARAM);
 	    return LAVACAM_ERR_SETPARAM;
 	}
@@ -1169,7 +888,7 @@ pwc_set(int cam_fd, union lavacam *u_cam_p)
 	parm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	parm.parm.capture.timeperframe.numerator = 1;
 	parm.parm.capture.timeperframe.denominator = cam->fps;
-	if (pwc_xioctl(cam_fd, VIDIOC_S_PARM, &parm) < 0) {
+	if (v4l2cam_xioctl(cam_fd, VIDIOC_S_PARM, &parm) < 0) {
 	    DBG(LAVACAM_ERR_SETPARAM);
 	    return LAVACAM_ERR_SETPARAM;
 	}
@@ -1189,14 +908,14 @@ pwc_set(int cam_fd, union lavacam *u_cam_p)
      * <0 ==> automatic gain, >=0 ==> manual gain level
      */
     if (PWC_TEST(cam->mask, agc)) {
-	if (pwc_ctrl_set(cam_fd, V4L2_CID_AUTOGAIN, cam->agc < 0 ? 1 : 0) ==
-	    PWC_CTRL_FAILED) {
+	if (v4l2cam_ctrl_set(cam_fd, V4L2_CID_AUTOGAIN, cam->agc < 0 ? 1 : 0) ==
+	    V4L2CAM_CTRL_FAILED) {
 	    DBG(LAVACAM_ERR_SETPARAM);
 	    return LAVACAM_ERR_SETPARAM;
 	}
 	if (cam->agc >= 0 &&
-	    pwc_ctrl_set_scaled(cam_fd, V4L2_CID_GAIN, PWC_MAX_AGC,
-				cam->agc) != PWC_CTRL_OK) {
+	    v4l2cam_ctrl_set_scaled(cam_fd, V4L2_CID_GAIN, PWC_MAX_AGC,
+				cam->agc) != V4L2CAM_CTRL_OK) {
 	    DBG(LAVACAM_ERR_SETPARAM);
 	    return LAVACAM_ERR_SETPARAM;
 	}
@@ -1209,17 +928,17 @@ pwc_set(int cam_fd, union lavacam *u_cam_p)
      * <0 ==> automatic, >=0 ==> manual exposure (higher ==> slower)
      */
     if (PWC_TEST(cam->mask, speed)) {
-	if (pwc_ctrl_query(cam_fd, V4L2_CID_EXPOSURE_AUTO, &q) == 0) {
+	if (v4l2cam_ctrl_query(cam_fd, V4L2_CID_EXPOSURE_AUTO, &q) == 0) {
 	    val = (cam->speed < 0) ? V4L2_EXPOSURE_AUTO : V4L2_EXPOSURE_MANUAL;
-	    if (pwc_ctrl_set(cam_fd, V4L2_CID_EXPOSURE_AUTO, val) ==
-		PWC_CTRL_FAILED) {
+	    if (v4l2cam_ctrl_set(cam_fd, V4L2_CID_EXPOSURE_AUTO, val) ==
+		V4L2CAM_CTRL_FAILED) {
 		DBG(LAVACAM_ERR_SETPARAM);
 		return LAVACAM_ERR_SETPARAM;
 	    }
 	}
 	if (cam->speed >= 0 &&
-	    pwc_ctrl_set_scaled(cam_fd, V4L2_CID_EXPOSURE, PWC_MAX_SPEED,
-				cam->speed) != PWC_CTRL_OK) {
+	    v4l2cam_ctrl_set_scaled(cam_fd, V4L2_CID_EXPOSURE, PWC_MAX_SPEED,
+				cam->speed) != V4L2CAM_CTRL_OK) {
 	    DBG(LAVACAM_ERR_SETPARAM);
 	    return LAVACAM_ERR_SETPARAM;
 	}
@@ -1230,32 +949,32 @@ pwc_set(int cam_fd, union lavacam *u_cam_p)
      * change white balance if requested
      */
     if (PWC_TEST(cam->mask, white_mode)) {
-	if (pwc_ctrl_set(cam_fd, V4L2_CID_AUTO_WHITE_BALANCE,
-			 cam->white_mode) != PWC_CTRL_OK) {
+	if (v4l2cam_ctrl_set(cam_fd, V4L2_CID_AUTO_WHITE_BALANCE,
+			 cam->white_mode) != V4L2CAM_CTRL_OK) {
 	    DBG(LAVACAM_ERR_SETPARAM);
 	    return LAVACAM_ERR_SETPARAM;
 	}
 	DBGS("mode", cam->white_mode);
     }
     if (PWC_TEST(cam->mask, white_red) || PWC_TEST(cam->mask, white_blue)) {
-	if (pwc_ctrl_get(cam_fd, V4L2_CID_AUTO_WHITE_BALANCE, &val) < 0) {
+	if (v4l2cam_ctrl_get(cam_fd, V4L2_CID_AUTO_WHITE_BALANCE, &val) < 0) {
 	    DBG(LAVACAM_ERR_GETPARAM);
 	    return LAVACAM_ERR_GETPARAM;
 	}
 	/* manual levels only matter in manual white balance mode */
 	if (val == PWC_WB_MANUAL && PWC_TEST(cam->mask, white_red)) {
-	    if (pwc_ctrl_set_scaled(cam_fd, V4L2_CID_RED_BALANCE,
+	    if (v4l2cam_ctrl_set_scaled(cam_fd, V4L2_CID_RED_BALANCE,
 				    PWC_MAX_WH_BAL_LEVEL, cam->white_red) !=
-		PWC_CTRL_OK) {
+		V4L2CAM_CTRL_OK) {
 		DBG(LAVACAM_ERR_SETPARAM);
 		return LAVACAM_ERR_SETPARAM;
 	    }
 	    DBGS("manual_red", cam->white_red);
 	}
 	if (val == PWC_WB_MANUAL && PWC_TEST(cam->mask, white_blue)) {
-	    if (pwc_ctrl_set_scaled(cam_fd, V4L2_CID_BLUE_BALANCE,
+	    if (v4l2cam_ctrl_set_scaled(cam_fd, V4L2_CID_BLUE_BALANCE,
 				    PWC_MAX_WH_BAL_LEVEL, cam->white_blue) !=
-		PWC_CTRL_OK) {
+		V4L2CAM_CTRL_OK) {
 		DBG(LAVACAM_ERR_SETPARAM);
 		return LAVACAM_ERR_SETPARAM;
 	    }
@@ -1275,10 +994,10 @@ pwc_set(int cam_fd, union lavacam *u_cam_p)
      */
     if (PWC_TEST(cam->mask, sharpness)) {
 	if (cam->sharpness == PWC_AUTO_SHARPNESS) {
-	    (void)pwc_ctrl_set(cam_fd, PWC_CID_AUTO_CONTOUR, 1);
+	    (void)v4l2cam_ctrl_set(cam_fd, PWC_CID_AUTO_CONTOUR, 1);
 	} else {
-	    (void)pwc_ctrl_set(cam_fd, PWC_CID_AUTO_CONTOUR, 0);
-	    (void)pwc_ctrl_set_scaled(cam_fd, PWC_CID_CONTOUR,
+	    (void)v4l2cam_ctrl_set(cam_fd, PWC_CID_AUTO_CONTOUR, 0);
+	    (void)v4l2cam_ctrl_set_scaled(cam_fd, PWC_CID_CONTOUR,
 				      PWC_MAX_SHARPNESS, cam->sharpness);
 	}
 	DBGS("sharpness", cam->sharpness);
@@ -1288,7 +1007,7 @@ pwc_set(int cam_fd, union lavacam *u_cam_p)
      * set backlight compensation mode, OK to fail
      */
     if (PWC_TEST(cam->mask, backlight)) {
-	(void)pwc_ctrl_set(cam_fd, V4L2_CID_BACKLIGHT_COMPENSATION,
+	(void)v4l2cam_ctrl_set(cam_fd, V4L2_CID_BACKLIGHT_COMPENSATION,
 			   cam->backlight ? 1 : 0);
 	DBGS("backlight", cam->backlight);
     }
@@ -1297,7 +1016,7 @@ pwc_set(int cam_fd, union lavacam *u_cam_p)
      * set flicker suppression mode, OK to fail
      */
     if (PWC_TEST(cam->mask, flicker)) {
-	(void)pwc_ctrl_set(cam_fd, V4L2_CID_BAND_STOP_FILTER,
+	(void)v4l2cam_ctrl_set(cam_fd, V4L2_CID_BAND_STOP_FILTER,
 			   cam->flicker ? 1 : 0);
 	DBGS("flicker", cam->flicker);
     }
@@ -1306,14 +1025,14 @@ pwc_set(int cam_fd, union lavacam *u_cam_p)
      * set dynamic noise reduction value, OK to fail
      */
     if (PWC_TEST(cam->mask, dyn_noise)) {
-	(void)pwc_ctrl_set(cam_fd, PWC_CID_NOISE_REDUCTION, cam->dyn_noise);
+	(void)v4l2cam_ctrl_set(cam_fd, PWC_CID_NOISE_REDUCTION, cam->dyn_noise);
 	DBGS("dyn_noise", cam->dyn_noise);
     }
 
     /*
      * save newly set settings as current user settings in camera's EEPROM
      */
-    if (pwc_ctrl_set(cam_fd, PWC_CID_SAVE_USER, 1) == PWC_CTRL_FAILED) {
+    if (v4l2cam_ctrl_set(cam_fd, PWC_CID_SAVE_USER, 1) == V4L2CAM_CTRL_FAILED) {
 	DBG(LAVACAM_ERR_SETPARAM);
 	return LAVACAM_ERR_SETPARAM;
     }
@@ -1601,7 +1320,7 @@ pwc_print(FILE * stream, int cam_fd, union lavacam *u_cam_p,
      * obtain camera name
      */
     memset(&vcap, 0, sizeof(vcap));
-    if (pwc_xioctl(cam_fd, VIDIOC_QUERYCAP, &vcap) < 0) {
+    if (v4l2cam_xioctl(cam_fd, VIDIOC_QUERYCAP, &vcap) < 0) {
 	fprintf(stream, "pwc_print: unable to get video capability\n");
 	DBG(LAVACAM_ERR_GETPARAM);
 	return LAVACAM_ERR_GETPARAM;
@@ -2754,61 +2473,6 @@ pwc_argv(int argc, char **argv, union lavacam *u_cam_p,
 
 
 /*
- * pwc_release - free frame buffers and close the camera descriptor
- *
- * given:
- *      cam_fd   open camera descriptor
- *      siz      pointer to operation size and buffer structure
- *
- * returns:
- *      0 ==> OK, <0 ==> error
- */
-static int
-pwc_release(int cam_fd, struct opsize *siz)
-{
-    /*
-     * free read buffer if reading
-     */
-    if (siz->use_read) {
-	if (siz->image != NULL) {
-	    (void)free(siz->image);
-	}
-
-	/*
-	 * or stop streaming and unmap buffers if mmapped
-	 */
-    } else {
-	pwc_stream_stop(cam_fd, siz);
-    }
-
-    /*
-     * free previous chaos frame
-     */
-    if (siz->prev_frame != NULL) {
-	(void)free(siz->prev_frame);
-	siz->prev_frame = NULL;
-    }
-
-    /*
-     * clear read/mmap frame data
-     */
-    siz->image = NULL;
-    siz->image_len = 0;
-    siz->chaos = NULL;
-    siz->chaos_len = 0;
-
-    /*
-     * close device
-     */
-    if (close(cam_fd) < 0) {
-	DBG(LAVACAM_ERR_CLOSE);
-	return LAVACAM_ERR_CLOSE;
-    }
-    return LAVACAM_ERR_OK;
-}
-
-
-/*
  * pwc_open - open a camera, verify its type, return opening camera state
  *
  * given:
@@ -2893,10 +2557,25 @@ pwc_open(char *devname, int model, union lavacam *o_cam_p,
     }
 
     /*
+     * verify that this is a pwc camera before changing anything
+     */
+    {
+	struct v4l2_capability vcap;	/* video capability */
+	int camtype;			/* Philips camera type */
+
+	ret = pwc_identify(cam_fd, &vcap, &camtype);
+	if (ret < 0) {
+	    (void)close(cam_fd);
+	    DBG(ret);
+	    return ret;
+	}
+    }
+
+    /*
      * set video input (channel)
      */
     input = (n_cam == NULL ? 0 : n_cam->channel);
-    if (pwc_xioctl(cam_fd, VIDIOC_S_INPUT, &input) < 0) {
+    if (v4l2cam_xioctl(cam_fd, VIDIOC_S_INPUT, &input) < 0) {
 	(void)close(cam_fd);
 	DBG(LAVACAM_ERR_CHAN);
 	return LAVACAM_ERR_CHAN;
@@ -2906,7 +2585,7 @@ pwc_open(char *devname, int model, union lavacam *o_cam_p,
      * restore saved user settings unless default
      */
     if (def == 0) {
-	if (pwc_ctrl_set(cam_fd, PWC_CID_RESTORE_USER, 1) == PWC_CTRL_FAILED) {
+	if (v4l2cam_ctrl_set(cam_fd, PWC_CID_RESTORE_USER, 1) == V4L2CAM_CTRL_FAILED) {
 	    (void)close(cam_fd);
 	    DBG(LAVACAM_ERR_SETPARAM);
 	    return LAVACAM_ERR_SETPARAM;
@@ -2922,7 +2601,7 @@ pwc_open(char *devname, int model, union lavacam *o_cam_p,
      */
     memset(&fmt, 0, sizeof(fmt));
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    if (pwc_xioctl(cam_fd, VIDIOC_G_FMT, &fmt) < 0) {
+    if (v4l2cam_xioctl(cam_fd, VIDIOC_G_FMT, &fmt) < 0) {
 	(void)close(cam_fd);
 	DBG(LAVACAM_ERR_GETPARAM);
 	return LAVACAM_ERR_GETPARAM;
@@ -2932,7 +2611,7 @@ pwc_open(char *devname, int model, union lavacam *o_cam_p,
 	fmt.fmt.pix.field = V4L2_FIELD_NONE;
 	fmt.fmt.pix.bytesperline = 0;
 	fmt.fmt.pix.sizeimage = 0;
-	if (pwc_xioctl(cam_fd, VIDIOC_S_FMT, &fmt) < 0 ||
+	if (v4l2cam_xioctl(cam_fd, VIDIOC_S_FMT, &fmt) < 0 ||
 	    fmt.fmt.pix.pixelformat != V4L2_PIX_FMT_YUV420) {
 	    (void)close(cam_fd);
 	    DBG(LAVACAM_ERR_PALUNSET);
@@ -3054,7 +2733,7 @@ pwc_open(char *devname, int model, union lavacam *o_cam_p,
 	 */
 	siz->image_len = siz->framesize;
 	siz->chaos_len = siz->mmap_lavalen;
-	ret = pwc_stream_start(cam_fd, siz);
+	ret = v4l2cam_stream_start(cam_fd, siz);
 	if (ret < 0) {
 	    (void)close(cam_fd);
 	    return ret;
@@ -3066,7 +2745,7 @@ pwc_open(char *devname, int model, union lavacam *o_cam_p,
      */
     siz->prev_frame = calloc(1, siz->chaos_len);
     if (siz->prev_frame == NULL) {
-	pwc_release(cam_fd, siz);
+	v4l2cam_release(cam_fd, siz);
 	DBG(LAVAERR_MALLOC);
 	return LAVAERR_MALLOC;
     }
@@ -3097,7 +2776,7 @@ pwc_open(char *devname, int model, union lavacam *o_cam_p,
 	 */
 	now = right_now();
 	if (now < 0.0) {
-	    pwc_release(cam_fd, siz);
+	    v4l2cam_release(cam_fd, siz);
 	    DBG(LAVAERR_GETTIME);
 	    return LAVAERR_GETTIME;
 	}
@@ -3112,7 +2791,7 @@ pwc_open(char *devname, int model, union lavacam *o_cam_p,
 	     * wait for the next frame
 	     */
 	    if (pwc_wait_frame(cam_fd, end - now) < 0) {
-		pwc_release(cam_fd, siz);
+		v4l2cam_release(cam_fd, siz);
 		DBG(LAVACAM_ERR_WARMUP);
 		return LAVACAM_ERR_WARMUP;
 	    }
@@ -3126,7 +2805,7 @@ pwc_open(char *devname, int model, union lavacam *o_cam_p,
 	     */
 	    if (pwc_get_frame(cam_fd, siz) < 0 ||
 		pwc_msync(cam_fd, &t_cam, siz) < 0) {
-		pwc_release(cam_fd, siz);
+		v4l2cam_release(cam_fd, siz);
 		DBG(LAVACAM_ERR_WARMUP);
 		return LAVACAM_ERR_WARMUP;
 	    }
@@ -3136,7 +2815,7 @@ pwc_open(char *devname, int model, union lavacam *o_cam_p,
 	     */
 	    now = right_now();
 	    if (now < 0.0) {
-		pwc_release(cam_fd, siz);
+		v4l2cam_release(cam_fd, siz);
 		DBG(LAVAERR_GETTIME);
 		return LAVAERR_GETTIME;
 	    }
@@ -3188,269 +2867,45 @@ pwc_close(int cam_fd, struct opsize *siz, struct lavacam_flag *flag)
     /*
      * free frame buffers and close device
      */
-    return pwc_release(cam_fd, siz);
+    return v4l2cam_release(cam_fd, siz);
 }
 
 
 /*
  * pwc_get_frame - get the next frame from the camera
  *
- * given:
- *      cam_fd   open camera descriptor
- *      siz      pointer to operation size and buffer structure
- *
- * returns:
- *      >= 0 ==> chaos octets obtained, < 0 ==> error
- *
- * NOTE: One must call pwc_msync() after processing each frame when
- *       mmapping, so that its buffer is returned to the driver.
- *
- * NOTE: To not block, call pwc_wait_frame() (or read select on the
- *       open file descriptor) before calling this function.
- *
- * NOTE: When mmapping, this function dequeues the next filled V4L2 buffer
- *	 and points siz->image and siz->chaos at it.  Unlike the V4L1
- *	 driver, it MUST be called before accessing the frame.
+ * See v4l2cam_get_frame() in v4l2cam.c.
  */
 int
 pwc_get_frame(int cam_fd, struct opsize *siz)
 {
-    struct v4l2_buffer buf;	/* dequeued buffer */
-    int op_ret = 0;		/* read count */
-    int tries;			/* errored buffers skipped */
-
-    /*
-     * firewall
-     */
-    if (cam_fd < 0 || siz == NULL) {
-	DBG(LAVACAM_ERR_ARG);
-	return LAVACAM_ERR_ARG;
-    }
-
-    /*
-     * read if reading
-     */
-    if (siz->use_read) {
-
-	/*
-	 * read the data
-	 */
-	if (siz->image == NULL || siz->image_len <= 0) {
-	    DBG(LAVACAM_ERR_NOSIZE);
-	    return LAVACAM_ERR_NOSIZE;
-	}
-	do {
-	    op_ret = read(cam_fd, siz->image, siz->image_len);
-	} while (op_ret < 0 && errno == EINTR);
-	if (op_ret < 0) {
-	    DBG(LAVACAM_ERR_IOERR);
-	    return LAVACAM_ERR_IOERR;
-	}
-	if (op_ret != siz->image_len) {
-	    DBG(LAVACAM_ERR_FRAME);
-	    return LAVACAM_ERR_FRAME;
-	}
-
-    /*
-     * otherwise dequeue the next filled buffer
-     */
-    } else {
-
-	/* a frame not yet released by pwc_msync() is still current */
-	if (siz->cur_buf >= 0) {
-	    return siz->chaos_len;
-	}
-
-	for (tries = 0; ; ++tries) {
-	    memset(&buf, 0, sizeof(buf));
-	    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	    buf.memory = V4L2_MEMORY_MMAP;
-	    if (pwc_xioctl(cam_fd, VIDIOC_DQBUF, &buf) < 0) {
-		DBG(LAVACAM_ERR_IOERR);
-		return LAVACAM_ERR_IOERR;
-	    }
-	    if ((int)buf.index >= siz->nbufs) {
-		DBG(LAVACAM_ERR_FRAME);
-		return LAVACAM_ERR_FRAME;
-	    }
-	    if (!(buf.flags & V4L2_BUF_FLAG_ERROR) &&
-		(int)buf.bytesused >= siz->framesize) {
-		break;
-	    }
-	    /* damaged or short frame: give it back and try the next one */
-	    if (pwc_xioctl(cam_fd, VIDIOC_QBUF, &buf) < 0 ||
-		tries >= PWC_DQBUF_TRIES) {
-		DBG(LAVACAM_ERR_FRAME);
-		return LAVACAM_ERR_FRAME;
-	    }
-	}
-	siz->cur_buf = buf.index;
-	siz->image = siz->buf_start[buf.index];
-	siz->chaos = (u_int8_t *)siz->image + siz->mmap_lavaoff;
-    }
-
-    /*
-     * report the amount of chaotic data returned
-     */
-    return siz->chaos_len;
+    return v4l2cam_get_frame(cam_fd, siz);
 }
 
 
 /*
- * pwc_msync - release/sync after processing a mmap captured buffer
+ * pwc_msync - release a frame obtained by pwc_get_frame()
  *
- * given:
- *      cam_fd      open camera descriptor
- *      u_cam_p     pointer to camera state (unused with V4L2)
- *      siz         pointer to operation size and buffer structure
- *
- * returns:
- *      0 ==> OK, <0 ==> error
- *
- * NOTE: If we a reading, we immediately return OK (0) after doing nothing.
- *
- * NOTE: This returns the current V4L2 buffer to the driver so that it can
- *	 be filled again.  siz->chaos must not be used after this call.
+ * See v4l2cam_msync() in v4l2cam.c.
  */
 int
 pwc_msync(int cam_fd, union lavacam *u_cam_p, struct opsize *siz)
 {
-    struct v4l2_buffer buf;	/* buffer to requeue */
-
-    /*
-     * firewall
-     */
-    if (cam_fd < 0 || u_cam_p == NULL || siz == NULL) {
+    if (u_cam_p == NULL) {
 	DBG(LAVACAM_ERR_ARG);
 	return LAVACAM_ERR_ARG;
     }
-    if (siz->use_read == TRUE) {
-	/* reading, nothing to do */
-	return LAVACAM_ERR_OK;
-    }
-
-    /*
-     * nothing to release if no frame is held
-     */
-    if (siz->cur_buf < 0) {
-	return LAVACAM_ERR_OK;
-    }
-
-    /*
-     * release
-     */
-    memset(&buf, 0, sizeof(buf));
-    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    buf.memory = V4L2_MEMORY_MMAP;
-    buf.index = siz->cur_buf;
-    if (pwc_xioctl(cam_fd, VIDIOC_QBUF, &buf) < 0) {
-	DBG(LAVACAM_ERR_SYNC);
-	return LAVACAM_ERR_SYNC;
-    }
-    siz->cur_buf = -1;
-    return LAVACAM_ERR_OK;
+    return v4l2cam_msync(cam_fd, siz);
 }
 
 
 /*
- * pwc_wait_frame - use select to wait for the next camera frame
+ * pwc_wait_frame - wait for the next camera frame
  *
- * given:
- *      cam_fd      open camera descriptor
- *      max_wait    wait for up to this many seconds, <0.0 ==> infinite
- *
- * returns:
- *      1 ==> frame is ready, 0 ==> timeout, <0 ==> error
+ * See v4l2cam_wait_frame() in v4l2cam.c.
  */
 int
 pwc_wait_frame(int cam_fd, double max_wait)
 {
-    fd_set rd_set;		/* select mask for reading */
-    struct timeval sel_wait = {0, 0};	/* select time, if >= 0 */
-    int ret;			/* select return value */
-    double start = 0.0;		/* pre-select time */
-    double end;			/* post-select time */
-    double delay;		/* time spent in select() or pselect() */
-
-    /*
-     * firewall
-     */
-    /* NOTE: timeout may be NULL */
-    if (cam_fd < 0) {
-	DBG(LAVACAM_ERR_ARG);
-	return LAVACAM_ERR_ARG;
-    }
-
-    /*
-     * common select setup
-     */
-    FD_ZERO(&rd_set);
-    FD_SET(cam_fd, &rd_set);
-    if (max_wait >= 0.0) {
-	sel_wait.tv_sec = double_to_tv_sec(max_wait);
-	sel_wait.tv_usec = double_to_tv_usec(max_wait);
-    }
-    /* keep track of time selected in case of signals */
-    if (max_wait >= 0.0) {
-	start = right_now();
-	if (start < 0.0) {
-	    DBG(LAVAERR_GETTIME);
-	    return LAVAERR_GETTIME;
-	}
-    }
-
-    /*
-     * wait for the next frame or until we wait too long (if max_wait)
-     */
-    do {
-	/* clear system error code */
-	errno = 0;
-
-	/* select may clear the descriptor set when interrupted */
-	FD_ZERO(&rd_set);
-	FD_SET(cam_fd, &rd_set);
-
-	/*
-	 * select
-	 */
-#if defined(HAVE_PSELECT)
-	if (max_wait >= 0.0) {
-	    struct timespec psel_wait;	/* pselect takes a timespec */
-
-	    psel_wait.tv_sec = sel_wait.tv_sec;
-	    psel_wait.tv_nsec = sel_wait.tv_usec * 1000;
-	    ret = pselect(cam_fd + 1, &rd_set, NULL, NULL, &psel_wait, NULL);
-	} else {
-	    ret = pselect(cam_fd + 1, &rd_set, NULL, NULL, NULL, NULL);
-	}
-#else /* HAVE_PSELECT */
-	if (max_wait >= 0.0) {
-	    ret = select(cam_fd + 1, &rd_set, NULL, NULL, &sel_wait);
-	} else {
-	    ret = select(cam_fd + 1, &rd_set, NULL, NULL, NULL);
-	}
-#endif /* HAVE_PSELECT */
-
-	/*
-	 * adjust select time based on how long we just waited
-	 */
-	if (ret < 0 && errno == EINTR && max_wait >= 0.0) {
-	    end = right_now();
-	    if (end < 0.0) {
-		DBG(LAVAERR_GETTIME);
-		return LAVAERR_GETTIME;
-	    }
-	    delay = end - start;
-	    if (delay >= max_wait) {
-		break;
-	    }
-	    sel_wait.tv_sec = double_to_tv_sec(max_wait - delay);
-	    sel_wait.tv_usec = double_to_tv_usec(max_wait - delay);
-	}
-    } while (ret < 0 && errno == EINTR);
-
-    /*
-     * return select status
-     */
-    return ret;
+    return v4l2cam_wait_frame(cam_fd, max_wait);
 }
