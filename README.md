@@ -70,6 +70,7 @@ Build and runtime findings are recorded in [`PORTING.md`](PORTING.md).
 | Commit / tag    | What it is                                     |
 |-----------------|------------------------------------------------|
 | `upstream-0.1.3`| The unmodified 0.1.3 release, as downloaded (see below) |
+| `main`          | Builds on Rocky 9 with `make all CC_WARN=-Wall`. Perl has been removed. The camera layer still needs porting to V4L2 |
 
 The upstream release was imported from
 `LavaRnd-0.1.3.tar.gz`
@@ -79,7 +80,8 @@ To see everything this fork has changed, run:
     git diff upstream-0.1.3
 
 The upstream documentation is still in [`README-first`](README-first) and
-[`doc/`](doc/). It describes the 2003 behaviour, not this fork.
+[`doc/`](doc/). It describes the 2003 behaviour, not this fork. In particular, it still
+documents the Perl API and `trickle`, which this fork has removed.
 
 ## Authorship
 

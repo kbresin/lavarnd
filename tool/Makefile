@@ -147,7 +147,7 @@ CSRC= imgtally.c camset.c camget.c camdump.c camdumpdir.c camsanity.c \
 	lavaop_i.c chk_lavarnd.c tryrnd.c poolout.c \
 	yuv2ppm.c y2grey.c yuv2rgb.c y2yuv.c y2pseudoyuv.c
 HSRC= chi_tbl.h yuv2rgb.h
-SHSRC= test_tryrnd test_perllib unload_modules
+SHSRC= test_tryrnd unload_modules
 
 # what to build
 #
@@ -494,12 +494,10 @@ ${LDIR}/liblava_libc${LSUF}:
 
 # perform various tests of the installed LavaRnd system
 #
-# NOTE: Most of these tests assume that LavaRnd has been installed,
-#	the perl modules have been installed and that the lavapool
-#	daemon is up and running.
+# NOTE: Most of these tests assume that LavaRnd has been installed
+#	and that the lavapool daemon is up and running.
 #
-test: chk_lavarnd camget poolout baseconv test_tryrnd ${TRYRND} \
-	    test_perllib ../perllib/LavaRnd
+test: chk_lavarnd camget poolout baseconv test_tryrnd ${TRYRND}
 	@echo =-=-= testing the core LavaRnd algorithm =-=-=
 	./chk_lavarnd
 	@echo =-=-= listing supported webcams =-=-=
@@ -512,8 +510,6 @@ test: chk_lavarnd camget poolout baseconv test_tryrnd ${TRYRND} \
 	@echo
 	@echo =-=-= testing LavaRnd C API to lavapool =-=-=
 	./test_tryrnd
-	@echo =-=-= testing LavaRnd Perl API to lavapool =-=-=
-	./test_perllib
 	@echo =-=-= all tests passed - test complete =-=-=
 	@echo LavaRnd is OK
 

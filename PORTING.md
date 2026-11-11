@@ -3,6 +3,22 @@
 This is a running log of what happens when the code is built and run on a
 current system. Newest entries go at the top.
 
+## 2026-11-11 — Perl removed
+
+Deleted `perllib/` (the Perl API), `daemon/trickle`, `daemon/trickle.rc` and
+`tool/test_perllib`, and removed them from the Makefiles and
+`manifest-LavaRnd`. A Python library and a Python `trickle` will replace them
+(see the README's Goals).
+
+- `make all CC_WARN=-Wall` now finishes cleanly, with no `POD2MAN` workaround.
+  That problem only affected the Perl modules.
+- `make -n install` (a dry run that only shows what install would do)
+  completes without errors.
+- `tool/chk_lavarnd`, upstream's self-test of the core algorithm, passes:
+  `all tests are OK`.
+- Still left behind: the per-Makefile `PERL=` / `POD2MAN=` variables (now
+  unused) and Perl references in the upstream docs under `doc/`.
+
 ## 2026-11-11 — First build of unmodified 0.1.3
 
 **System:** Rocky Linux 9.8, kernel 5.14.0, gcc 11.5.0, Perl 5.32,

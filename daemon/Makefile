@@ -147,7 +147,7 @@ CSRC= listener.c client.c chaos.c chan.c cfg_lavapool.c pool.c dbg.c \
 	lavapool.c simple_url.c lavaurl.c
 LAVAPOOL_OBJS= listener.o client.o chaos.o chan.o cfg_lavapool.o pool.o \
 	dbg.o lavapool.o
-SHSRC= trickle
+SHSRC=
 OBJS= ${LAVAPOOL_OBJS} simple_url.o lavaurl.o
 #
 LIB_BUILD_HSRC= ${LDIR}/have_getppid.h ${LDIR}/have_getprid.h \
@@ -156,7 +156,7 @@ LIB_BUILD_HSRC= ${LDIR}/have_getppid.h ${LDIR}/have_getprid.h \
 	${LDIR}/have_sys_times.h ${LDIR}/have_time.h \
 	${LDIR}/have_uid_t.h ${LDIR}/have_urandom.h ${LDIR}/have_ustat.h \
 	${LDIR}/have_ustat_h.h
-RC_SRC= LavaRnd.rc trickle.rc
+RC_SRC= LavaRnd.rc
 #
 SRC= ${HSRC} ${CSRC} ${RC_SRC} ${SHSRC}
 
@@ -436,7 +436,6 @@ install.sed: Makefile
 	  echo 's:^LAVARND_USER=.*:LAVARND_USER=${LAVARND_USER}:'; \
 	  echo 's:^LAVARND_GROUP=.*:LAVARND_GROUP=${LAVARND_GROUP}:'; \
 	  echo 's:^LAVAPOOL_CHROOT=.*:LAVAPOOL_CHROOT=${LAVAPOOL_CHROOT}:'; \
-	  echo 's:^TRICKLE=.*:TRICKLE=${DESTSBIN}/trickle:'; \
 	  echo 's:^DESTBIN=.*:DESTBIN=${DESTBIN}:'; \
 	  echo 's:^DESTSBIN=.*:DESTSBIN=${DESTSBIN}:'; \
 	  echo 's:INSERT_VIDEODEV_HERE:${LAVARND_VIDEODEV}:'; \
@@ -463,7 +462,6 @@ dist.sed: Makefile
 	  echo 's:^LAVAPOOL=.*:LAVAPOOL=/usr/sbin/lavapool:'; \
 	  echo 's:^RANDOM_CFG=.*:RANDOM_CFG=/etc/LavaRnd/cfg.random:'; \
 	  echo 's:^LAVAPOOL_CFG=.*:LAVAPOOL_CFG=/etc/LavaRnd/cfg.lavapool:'; \
-	  echo 's:^TRICKLE=.*:TRICKLE=/usr/sbin/trickle:'; \
 	  echo 's:^DESTBIN=.*:DESTBIN=/usr/bin:'; \
 	  echo 's:^DESTSBIN=.*:DESTSBIN=/usr/sbin:'; \
 	) > $@

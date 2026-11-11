@@ -164,12 +164,8 @@ REUSE_DOWN= ${WWWRO}/reuse_down
 #
 # These dirs should be built in this order
 #
-# NOTE: The perllib really needs to be built after lib has been installed,
-#	so we first install ${PRESUBDIRS} and then recompile perllib
-#	before installing it.  *sigh*
-#
 PRESUBDIRS= lib daemon tool doc
-SUBDIRS= ${PRESUBDIRS} perllib
+SUBDIRS= ${PRESUBDIRS}
 
 # passdown - complete list of Makefile vars passed down to SUBDIRS Makefiles
 #
@@ -311,9 +307,6 @@ clobber:
 	@${RM} -f dist.sed install.sed
 	@echo "=+=+=+= ending $@ rule =+=+=+="
 
-# NOTE: The perllib really needs to be built after lib has been installed,
-#	so we first install ${PRESUBDIRS} and then recompile perllib
-#
 install: all
 	@echo "=+=+=+= starting $@ rule =+=+=+="
 	@for i in ${SUBDIRS}; do \
@@ -332,20 +325,6 @@ install: all
 	    fi; \
 	    echo "=-_-= ending $@ $$i subdir =-_-="; \
 	done
-	@echo "=+=+= must rebuiild perllib after lib has been installed =+=+="
-	@echo "(cd perllib; $(MAKE) clobber)"
-	@(cd perllib; $(MAKE) clobber ${PASSDOWN})
-	@echo "(cd perllib; $(MAKE) all)"
-	@(cd perllib; $(MAKE) all ${PASSDOWN})
-	@echo "=+=+= perllib rebuilt =+=+="
-	@echo "=+=+= starting $@ perllib subdir =+=+="
-	@echo "      (cd perllib; $(MAKE) $@)"
-	@(cd perllib; $(MAKE) $@ ${PASSDOWN}); \
-	 if [ $$? -ne 0 ]; then \
-	     echo "  $(MAKE) $@ for perllib failed" 1>&2; \
-	     exit 3; \
-	 fi; \
-	 echo "=-_-= ending $@ perllib =-_-="
 	@echo "=+=+=+= ending $@ rule =+=+=+="
 
 # ccflags - output C compiler flag values
