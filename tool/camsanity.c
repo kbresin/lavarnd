@@ -39,6 +39,7 @@
 #include <string.h>
 #include <errno.h>
 #include <math.h>
+#include <signal.h>
 
 #include "LavaRnd/rawio.h"
 #include "LavaRnd/lavacam.h"
@@ -48,6 +49,15 @@
 #define SIGMA (0.6826895)	/* 1-sigma standard div factor */
 
 char *program;	/* our name */
+
+static volatile sig_atomic_t stop_requested = 0;	/* SIGINT/SIGTERM seen */
+
+static void
+request_stop(int sig)
+{
+    (void)sig;
+    stop_requested = 1;
+}
 
 static double average(double *data, int n);
 static double stddev(double *data, int n, int is_all);
@@ -68,6 +78,7 @@ main(int argc, char *argv[])
     int top_x = 0;		/* max top_x to consider */
     struct opsize siz;		/* camera operation size */
     long long framenum;		/* frame number */
+    int nstat;			/* frames with stats, in [1..nstat] */
 
     FILE *f_diff;		/* bit difference fraction file */
     FILE **f_tx;		/* uncommon fraction file */
@@ -362,7 +373,9 @@ main(int argc, char *argv[])
 	fprintf(stderr, "%s op size: %d\n",
 		(siz.use_read ? "read" : "mmap"), siz.chaos_len);
     }
-    for (framenum = 0; framenum <= framecnt; ++framenum) {
+    (void)signal(SIGINT, request_stop);
+    (void)signal(SIGTERM, request_stop);
+    for (framenum = 0; framenum <= framecnt && !stop_requested; ++framenum) {
 
 	/*
 	 * wait for the next frame
@@ -498,12 +511,25 @@ main(int argc, char *argv[])
     }
 
     /*
+     * frame 0 only primes prev_frame, so stats are in elements [1..nstat]
+     */
+    nstat = (int)(framenum - 1);
+    if (stop_requested) {
+	fprintf(stderr, "%s: stopped early, computing stats for %d frames\n",
+		program, nstat);
+    }
+    if (nstat < 1) {
+	fprintf(stderr, "%s: no frames measured, no stats\n", program);
+	exit(23);
+    }
+
+    /*
      * search for def_top_x - find average uncom_fract near 0.6826895 (1-sigma)
      */
     d = 1.0;
     for (recommend_top_x = 1; recommend_top_x <= top_x; ++recommend_top_x) {
 	t = d;
-	d = average(uncom_fract[recommend_top_x], framenum);
+	d = average(uncom_fract[recommend_top_x] + 1, nstat);
 	if (d < SIGMA) {
 	    /* we may be near our mark */
 	    break;
@@ -529,7 +555,7 @@ main(int argc, char *argv[])
      */
     if (recommend_top_x > 0) {
     	recommend_min_fract = min_uncom_fract[recommend_top_x] - 5 *
-			      stddev(uncom_fract[recommend_top_x], framenum, 1);
+			      stddev(uncom_fract[recommend_top_x] + 1, nstat, 1);
     	if (recommend_min_fract <= 0.0) {
 	    recommend_min_fract = -1.0;
 	    if (flag.v_flag >= 1) {
@@ -537,7 +563,7 @@ main(int argc, char *argv[])
 		       "min of top_%d=%f - 5-sigma of top_%d=%f <= 0.0\n",
 		       recommend_top_x, min_uncom_fract[recommend_top_x],
 		       recommend_top_x,
-		       stddev(uncom_fract[recommend_top_x], framenum, 1));
+		       stddev(uncom_fract[recommend_top_x] + 1, nstat, 1));
 	    }
 	}
     } else {
@@ -560,7 +586,7 @@ main(int argc, char *argv[])
 	    	   top_x);
 	}
     } else {
-    	recommend_half_x = (int)(min_half_x - 5*stddev(half_x, framenum, 1));
+    	recommend_half_x = (int)(min_half_x - 5*stddev(half_x + 1, nstat, 1));
 	if (recommend_half_x < 0) {
 	    /* we cannot recommend a def_half_x value */
 	    recommend_half_x = -1;
@@ -574,14 +600,14 @@ main(int argc, char *argv[])
      * determine def_diff_fract - 1-sigma below min min_bitdiff_fract
      */
     recommend_diff_fract = min_bitdiff_fract - 5 *
-	stddev(bitdiff_fract, framenum, 1);
+	stddev(bitdiff_fract + 1, nstat, 1);
     if (recommend_diff_fract <= 0.0) {
 	/* we cannot recommend a def_diff_fract value */
 	if (flag.v_flag >= 1) {
 	    printf("cannot recommend def_diff_fract value: "
 		   "min_bitdiff_fract=%f - 5*sdv_bitdiff_fract=%f <= 0.0",
 		   min_bitdiff_fract,
-		   stddev(bitdiff_fract, framenum, 1));
+		   stddev(bitdiff_fract + 1, nstat, 1));
 	}
 	recommend_diff_fract = -1.0;
     }
@@ -592,34 +618,34 @@ main(int argc, char *argv[])
     fprintf(final, "min_bitdiff_fract = %f\n", min_bitdiff_fract);
     fprintf(final, "max_bitdiff_fract = %f\n", max_bitdiff_fract);
     fprintf(final, "ave_bitdiff_fract = %f\n",
-	    average(bitdiff_fract, framenum));
+	    average(bitdiff_fract + 1, nstat));
     fprintf(final, "sdv_bitdiff_fract = %f\n",
-	    stddev(bitdiff_fract, framenum, 1));
+	    stddev(bitdiff_fract + 1, nstat, 1));
     fprintf(final, "min_half_x = %d\n", min_half_x);
     fprintf(final, "max_half_x = %d\n", max_half_x);
-    fprintf(final, "ave_half_x = %f\n", average(half_x, framenum));
-    fprintf(final, "sdv_half_x = %f\n", stddev(half_x, framenum, 1));
+    fprintf(final, "ave_half_x = %f\n", average(half_x + 1, nstat));
+    fprintf(final, "sdv_half_x = %f\n", stddev(half_x + 1, nstat, 1));
     for (i = 1; i <= top_x; ++i) {
 	fprintf(final, "min_uncom_fract[%d] = %f\n", i, min_uncom_fract[i]);
 	fprintf(final, "max_uncom_fract[%d] = %f\n", i, max_uncom_fract[i]);
 	fprintf(final, "ave_uncom_fract[%d] = %f\n",
-		i, average(uncom_fract[i], framenum));
+		i, average(uncom_fract[i] + 1, nstat));
 	fprintf(final, "sdv_uncom_fract[%d] = %f\n",
-		i, stddev(uncom_fract[i], framenum, 1));
+		i, stddev(uncom_fract[i] + 1, nstat, 1));
     }
     if (flag.v_flag >= 1) {
 	printf("bitdiff_fract(min,max,ave,stv): %f %f %f %f\n",
 	       min_bitdiff_fract, max_bitdiff_fract,
-	       average(bitdiff_fract, framenum),
-	       stddev(bitdiff_fract, framenum, 1));
+	       average(bitdiff_fract + 1, nstat),
+	       stddev(bitdiff_fract + 1, nstat, 1));
 	printf("half_x(min,max,ave,stv): %d %d %f %f\n",
 	       min_half_x, max_half_x,
-	       average(half_x, framenum), stddev(half_x, framenum, 1));
+	       average(half_x + 1, nstat), stddev(half_x + 1, nstat, 1));
 	for (i = 1; i <= top_x; ++i) {
 	    printf("uncom_fract[%d](min,max,ave,stv): %f %f %f %f\n",
 		   i, min_uncom_fract[i], max_uncom_fract[i],
-		   average(uncom_fract[i], framenum),
-		   stddev(uncom_fract[i], framenum, 1));
+		   average(uncom_fract[i] + 1, nstat),
+		   stddev(uncom_fract[i] + 1, nstat, 1));
 	}
     }
 
@@ -642,13 +668,13 @@ main(int argc, char *argv[])
 	fprintf(final, "    min_value = %f\n",
 		min_uncom_fract[recommend_top_x]);
 	fprintf(final, "    sigma_val = %f\n",
-		stddev(uncom_fract[recommend_top_x], framenum, 1));
+		stddev(uncom_fract[recommend_top_x] + 1, nstat, 1));
 	if (flag.v_flag >= 1) {
 	    printf("def_min_fract = %f\n", recommend_min_fract);
 	    printf("    min_value = %f\n",
 		   min_uncom_fract[recommend_top_x]);
 	    printf("    sigma_val = %f\n",
-		   stddev(uncom_fract[recommend_top_x], framenum, 1));
+		   stddev(uncom_fract[recommend_top_x] + 1, nstat, 1));
 	}
     } else {
 	fprintf(final, "def_min_fract = UNKNOWN\n");
@@ -663,43 +689,43 @@ main(int argc, char *argv[])
     if (recommend_half_x >= 0) {
 	fprintf(final, "def_half_x = %d\n", recommend_half_x);
 	fprintf(final, "   min_val = %d\n", min_half_x);
-	fprintf(final, "   sdv_val = %f\n", stddev(half_x, framenum, 1));
+	fprintf(final, "   sdv_val = %f\n", stddev(half_x + 1, nstat, 1));
 	if (flag.v_flag >= 1) {
 	    printf("def_half_x = %d\n", recommend_half_x);
 	    printf("   min_val = %d\n", min_half_x);
-	    printf("   sdv_val = %f\n", stddev(half_x, framenum, 1));
+	    printf("   sdv_val = %f\n", stddev(half_x + 1, nstat, 1));
 	}
     } else {
 	fprintf(final, "def_half_x = UNKNOWN\n");
 	fprintf(final, "   min_val = %d\n", min_half_x);
-	fprintf(final, "   sdv_val = %f\n", stddev(half_x, framenum, 1));
+	fprintf(final, "   sdv_val = %f\n", stddev(half_x + 1, nstat, 1));
 	if (flag.v_flag >= 1) {
 	    printf("def_half_x = UNKNOWN\n");
 	    printf("   min_val = %d\n", min_half_x);
-	    printf("   sdv_val = %f\n", stddev(half_x, framenum, 1));
+	    printf("   sdv_val = %f\n", stddev(half_x + 1, nstat, 1));
 	}
     }
     if (recommend_diff_fract >= 0.0) {
 	fprintf(final, "def_diff_fract = %f\n", recommend_diff_fract);
 	fprintf(final, "      min_diff = %f\n", min_bitdiff_fract);
 	fprintf(final, "    sigma_diff = %f\n",
-		stddev(bitdiff_fract, framenum, 1));
+		stddev(bitdiff_fract + 1, nstat, 1));
 	if (flag.v_flag >= 1) {
 	    printf("def_diff_fract = %f\n", recommend_diff_fract);
 	    printf("      min_diff = %f\n", min_bitdiff_fract);
 	    printf("    sigma_diff = %f\n",
-	    	   stddev(bitdiff_fract, framenum, 1));
+	    	   stddev(bitdiff_fract + 1, nstat, 1));
 	}
     } else {
 	fprintf(final, "def_diff_fract = UNKNOWN\n");
 	fprintf(final, "      min_diff = %f\n", min_bitdiff_fract);
 	fprintf(final, "    sigma_diff = %f\n",
-		stddev(bitdiff_fract, framenum, 1));
+		stddev(bitdiff_fract + 1, nstat, 1));
 	if (flag.v_flag >= 1) {
 	    printf("def_diff_fract = UNKNOWN\n");
 	    printf("      min_diff = %f\n", min_bitdiff_fract);
 	    printf("    sigma_diff = %f\n",
-	    	   stddev(bitdiff_fract, framenum, 1));
+	    	   stddev(bitdiff_fract + 1, nstat, 1));
 	}
     }
     fflush(final);
@@ -802,7 +828,7 @@ static double
 stddev(double *data, int n, int is_all)
 {
     double ave;	/* average value of data points */
-    double diff;	/* absolute difference from average */
+    double diff;	/* difference from average */
     double sumdiff;	/* sum of diff's */
     double sumsqdiff;	/* sum of square of diff's */
     double std_dev;	/* standard deviation */
@@ -823,7 +849,7 @@ stddev(double *data, int n, int is_all)
     sumdiff = 0.0;
     sumsqdiff = 0.0;
     for (i = 0; i < n; ++i) {
-	diff = fabs(data[i] - ave);
+	diff = data[i] - ave;
 	sumdiff += diff;
 	sumsqdiff += diff * diff;
     }

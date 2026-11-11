@@ -3,6 +3,28 @@
 This is a running log of what happens when the code is built and run on a
 current system. Newest entries go at the top.
 
+## 2026-11-11 — camsanity statistics fixed
+
+`tool/camsanity.c`:
+
+- `stddev()` now uses signed deviations. Upstream's own comment above the
+  function gives the right formula (the corrected two-pass
+  `Σd² − (Σd)²/n`), but the code took `fabs()` of each deviation, which
+  makes it the spread of the absolute deviations, about 0.6× the true value.
+- The statistics now cover only the measured frames (array elements
+  `1..n`). Before, they also included element 0, which frame 0 never fills:
+  zero for most arrays, and uninitialised memory for `bitdiff_fract`, which
+  is `malloc`ed.
+- SIGINT and SIGTERM now stop the capture loop. `camsanity` then computes
+  statistics and recommendations for the frames it has and writes
+  `final.stat`, instead of dying with nothing. That would have saved the
+  calibration run that was cut short.
+
+Checked on the QuickCam (`qcpro4000`): a 600-frame run's averages and
+standard deviations match an independent Python calculation from the
+per-frame files to all six printed digits. A run stopped with SIGTERM after
+230 frames exited 0 and wrote its recommendations.
+
 ## 2026-11-11 — Sanity limits calibrated for the QuickCam Pro 4000
 
 Until now this camera ran with the `pwc740` profile, whose sanity limits were
@@ -19,8 +41,8 @@ started it ended. `camsanity` writes one line per frame as it goes, so the
 data for those frames is complete. There was no drift: each third of the run
 has the same averages to within 0.0003, so the run wasn't repeated.
 
-**Two bugs in upstream's `camsanity` statistics** (left in `tool/camsanity.c`
-for now):
+**Two bugs in upstream's `camsanity` statistics** (fixed afterwards; see
+the next entry):
 
 1. Averages and spreads include an unused slot for frame 0 with value 0.
 2. `stddev()` computes `(Σd² − (Σ|d|)²/n) / n` with `d = x − mean`. That is
