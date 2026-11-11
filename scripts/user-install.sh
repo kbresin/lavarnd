@@ -25,7 +25,7 @@
 # Afterwards:
 #
 #	systemctl --user enable --now lavapool.service
-#	journalctl --user -u lavapool.service
+#	journalctl _SYSTEMD_USER_UNIT=lavapool.service	(logs)
 #
 # To keep the service running while logged out: loginctl enable-linger
 

@@ -98,6 +98,11 @@ config file to `~/.config/LavaRnd/cfg.lavapool`. The daemon listens on
 
     LD_LIBRARY_PATH=lib/shared tool/poolout 32 1 0 | od -An -tx1
 
+Its warnings (such as frames rejected by the sanity check) go to the journal:
+`journalctl _SYSTEMD_USER_UNIT=lavapool.service`. That works even where
+journald keeps logs only in memory, which makes `journalctl --user` find
+nothing.
+
 Your account must be able to open the camera, which usually means being in
 the `video` group. To keep the service running while you're logged out, run
 `loginctl enable-linger`.
