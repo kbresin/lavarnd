@@ -3,6 +3,21 @@
 This is a running log of what happens when the code is built and run on a
 current system. Newest entries go at the top.
 
+## 2026-11-11 — QuickCam retest after the V4L2 refactor
+
+With the QuickCam plugged back in, the `pwc` driver (now using
+`lib/v4l2cam.c`) was retested:
+
+- `camset qcpro4000 /dev/video0 -L` applies the preset, and `camget` reads it
+  back with the calibrated sanity limits.
+- `camget c270` on the QuickCam fails with "wrong camera type".
+- 900 frames of `camsanity` all passed the calibrated limits by a wide
+  margin: top_17 uncommon fraction min 0.674531 (limit 0.661101), half
+  level min 27 (limit 24), bitdiff min 0.414486 (limit 0.405155). These
+  match the calibration run.
+- `lavapool` on the QuickCam served 4 MB through the Python client in 4m42s
+  (about 15 KB/s) with no fallback bytes and no insane frame warnings.
+
 ## 2026-11-11 — C270 calibration
 
 A full `camsanity` run on the C270 with the `c270` preset, using the fixed
@@ -42,8 +57,8 @@ waiting for a frame, and releasing buffers. `pwc_get_frame`, `pwc_msync` and
 `pwc_wait_frame` are now thin wrappers around them. `pwc_open()` also now
 checks it is talking to the `pwc` driver before changing the format, so the
 wrong camera type gets "wrong camera type" instead of a misleading palette
-error. **The `pwc` driver needs a retest on the QuickCam** once it's plugged
-back in; the refactor was only compile-tested.
+error. The `pwc` driver was retested on the QuickCam afterwards (see the
+next entry up).
 
 **`lib/uvc_drvr.c`** (`LavaRnd/uvc_state.h`, `LavaRnd/uvc_drvr.h`):
 

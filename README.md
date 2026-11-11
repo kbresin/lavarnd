@@ -85,8 +85,6 @@ documents the Perl API and `trickle`, which this fork has removed.
 
 ## To do
 
-- **Retest the QuickCam (`pwc`) driver** after the V4L2 code moved into
-  `lib/v4l2cam.c` for the UVC driver. So far it has only been compile-tested.
 - **Credit entropy as root.** An optional `trickle` mode using the
   `RNDADDENTROPY` ioctl, plus a system-wide install. Planned for after the
   development stage.
