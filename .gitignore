@@ -138,3 +138,9 @@ tool/y2grey
 tool/y2pseudoyuv
 tool/y2yuv
 tool/yuv2ppm
+
+# Python
+__pycache__/
+*.egg-info/
+python/build/
+python/dist/

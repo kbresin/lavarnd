@@ -3,6 +3,34 @@
 This is a running log of what happens when the code is built and run on a
 current system. Newest entries go at the top.
 
+## 2026-11-11 — Python client library
+
+Added `python/`, a pure-Python package `lavarnd` that replaces the removed
+Perl API. It talks to `lavapool` directly over the daemon's TCP protocol
+(`daemon/client.c`): send a decimal count and a newline, read back exactly
+that many bytes, one request per connection, from 1 to `maxrequest` bytes.
+It doesn't wrap the C libraries, so nothing has to be compiled or installed to
+use it.
+
+- Reads the same `cfg.random` as the C library, with the same defaults when
+  no file exists, plus a `$LAVARND_CFG` override.
+- Requests larger than `maxrequest` are split across connections.
+- Error handling mirrors the C library's policies in Python terms: a fixed
+  number of retries and then raise ("return"), `retries=None` to keep trying
+  ("retry"), or a `fallback` callable such as `os.urandom` (in place of the
+  "try"/"s100" policies; the fork doesn't port the s100 generator). Each
+  attempt's timeout grows from `return_min_wait` to `return_max_wait`, like the
+  C client's.
+- `LavaRandom` is a `random.Random` subclass in the style of
+  `random.SystemRandom`. It buffers 4 KiB at a time, never reuses a byte, and
+  drops its buffer in a child process after `fork()`.
+- `python -m lavarnd N` writes N bytes to stdout, like `tool/poolout`.
+
+Supports Python 3.9 (the system Python on Rocky 9) and later, with no
+dependencies. 23 `unittest` tests run against a fake `lavapool`, plus one
+live test (`LAVARND_LIVE=1`) that pulled 70,000 bytes from the real daemon.
+A wheel builds with `pip wheel`.
+
 ## 2026-11-11 — lavapool as a systemd user service
 
 `lavapool` needs no root. It only chroots or switches user if given `-c` /

@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lavarnd"
+version = "0.2.0.dev0"
+description = "Python client for LavaRnd, a random number generator driven by webcam noise"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "LGPL-2.1-only" }
+authors = [{ name = "LavaRnd revival fork contributors (AI-assisted)" }]
+classifiers = [
+    "License :: OSI Approved :: GNU Lesser General Public License v2 (LGPLv2)",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security :: Cryptography",
+]
+
+[project.urls]
+Source = "https://github.com/kbresin/lavarnd"
+
+[tool.setuptools.packages.find]
+where = ["src"]

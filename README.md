@@ -70,7 +70,7 @@ Build and runtime findings are recorded in [`PORTING.md`](PORTING.md).
 | Commit / tag    | What it is                                     |
 |-----------------|------------------------------------------------|
 | `upstream-0.1.3`| The unmodified 0.1.3 release, as downloaded (see below) |
-| `main`          | Builds on Rocky 9 with `make all CC_WARN=-Wall`. Perl has been removed. The `pwc` camera driver now uses V4L2, and the tools capture frames and produce random output from a Logitech QuickCam Pro 4000. The `lavapool` daemon runs unprivileged as a systemd user service |
+| `main`          | Builds on Rocky 9 with `make all CC_WARN=-Wall`. Perl has been removed. The `pwc` camera driver now uses V4L2, and the tools capture frames and produce random output from a Logitech QuickCam Pro 4000. The `lavapool` daemon runs unprivileged as a systemd user service. A pure-Python client library is in [`python/`](python/) |
 
 The upstream release was imported from
 `LavaRnd-0.1.3.tar.gz`
@@ -100,7 +100,13 @@ config file to `~/.config/LavaRnd/cfg.lavapool`. The daemon listens on
 
 Your account must be able to open the camera, which usually means being in
 the `video` group. To keep the service running while you're logged out, run
-`loginctl enable-linger`. The upstream root install (`make install`, SysV init
+`loginctl enable-linger`.
+
+To use it from Python, see [`python/README.md`](python/README.md):
+
+    cd python && PYTHONPATH=src python3 -m lavarnd --hex 32
+
+The upstream root install (`make install`, SysV init
 scripts) is still there but hasn't been ported.
 
 ## Authorship
