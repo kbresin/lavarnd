@@ -144,3 +144,7 @@ __pycache__/
 *.egg-info/
 python/build/
 python/dist/
+
+# lib/shared is a build directory: only its Makefile is source
+lib/shared/*
+!lib/shared/Makefile
