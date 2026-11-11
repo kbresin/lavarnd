@@ -40,9 +40,8 @@ code no longer builds or runs on a current Linux system:
    reloading kernel modules by hand. A modern system expects systemd units and
    udev rules.
 
-The generator core, the `lavapool` daemon, the client library and the Perl API
-are mostly portable C and Perl. Our current plan is to keep these and replace
-the camera layer.
+The generator core, the `lavapool` daemon and the C client library are mostly
+portable C. Our current plan is to keep these and replace the camera layer.
 
 ## Goals
 
@@ -53,10 +52,16 @@ the camera layer.
 - Keep working with `pwc` cameras (tested on a Logitech QuickCam Pro 4000), and
   if practical add support for ordinary UVC webcams.
 - Replace the SysV init scripts with systemd units.
-- Add a Python library. Upstream's only scripting interface is in Perl, which
-  far fewer people use today. The Python library would sit on the same C client
-  API and give access to the random data from `lavapool`. We will keep the Perl
-  API for compatibility.
+- **Remove Perl entirely.** Upstream's only scripting interface is a Perl API
+  (`perllib/`), and its `trickle` daemon is a Perl script. Far fewer people use
+  Perl today, so this fork drops both. This is a deliberate break from
+  upstream.
+- Add a Python library to replace the Perl API. It would sit on the same C
+  client API and give access to the random data from `lavapool`.
+- Rewrite the `trickle` daemon in Python on top of that library. `trickle`
+  feeds LavaRnd data into the kernel's `/dev/random` pool.
+
+Build and runtime findings are recorded in [`PORTING.md`](PORTING.md).
 - Stay as close to upstream as practical, and record every deviation and its
   reason.
 
