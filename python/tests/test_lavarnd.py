@@ -21,11 +21,12 @@ import tempfile
 import threading
 import time
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from unittest import mock
 
 import lavarnd
 from lavarnd import config as cfgmod
+from lavarnd import trickle
 from lavarnd.__main__ import main as cli_main
 
 
@@ -292,6 +293,64 @@ class CliTests(unittest.TestCase):
             os.unlink(f.name)
         self.assertEqual(rc, 0)
         self.assertEqual(len(bytes.fromhex(out.getvalue().strip())), 8)
+
+
+class TrickleTests(unittest.TestCase):
+    def setUp(self):
+        fd, self.path = tempfile.mkstemp()
+        os.close(fd)
+        self.fd = os.open(self.path, os.O_WRONLY | os.O_APPEND)
+
+    def tearDown(self):
+        os.close(self.fd)
+        os.unlink(self.path)
+
+    def test_writes_count_chunks(self):
+        with FakeLavapool() as srv:
+            n = trickle.trickle(lavarnd.LavaPool(srv.config), self.fd, 16, 0, count=5)
+        self.assertEqual(n, 5)
+        self.assertEqual(os.path.getsize(self.path), 80)
+        self.assertEqual(srv.requests, [16] * 5)
+
+    def test_skips_when_lavapool_is_down_and_recovers(self):
+        logs = []
+        with FakeLavapool(fail_first=2) as srv:
+            pool = lavarnd.LavaPool(srv.config, retries=0)
+            n = trickle.trickle(pool, self.fd, 8, 0, count=4,
+                                log=lambda lvl, msg: logs.append((lvl, msg)))
+        self.assertEqual(n, 2)
+        self.assertEqual(os.path.getsize(self.path), 16)
+        warnings = [m for lvl, m in logs if lvl == 0]
+        self.assertEqual(len(warnings), 2, warnings)  # one "down", one "back"
+        self.assertIn("cannot get data", warnings[0])
+        self.assertIn("back", warnings[1])
+
+    def test_stop_event_ends_the_loop(self):
+        stop = threading.Event()
+        with FakeLavapool() as srv:
+            t = threading.Thread(target=trickle.trickle,
+                                 args=(lavarnd.LavaPool(srv.config), self.fd, 4, 10.0),
+                                 kwargs={"stop": stop})
+            t.start()
+            time.sleep(0.3)
+            stop.set()
+            t.join(2)
+        self.assertFalse(t.is_alive())
+        self.assertEqual(os.path.getsize(self.path), 4)
+
+    def test_cli(self):
+        with FakeLavapool() as srv, tempfile.NamedTemporaryFile("w", delete=False) as cfg:
+            cfg.write(f"lavapool={srv.config.lavapool}\n")
+            cfg.close()
+            rc = trickle.main(["-c", cfg.name, "-n", "3", "32", "0", self.path])
+            os.unlink(cfg.name)
+        self.assertEqual(rc, 0)
+        self.assertEqual(os.path.getsize(self.path), 96)
+
+    def test_cli_validation(self):
+        for args in (["0"], ["40000"], ["16", "-1"], ["16", "1", "/nonexistent/x"]):
+            with self.assertRaises(SystemExit), redirect_stderr(io.StringIO()):
+                trickle.main(args)
 
 
 @unittest.skipUnless(os.environ.get("LAVARND_LIVE") == "1", "set LAVARND_LIVE=1 to use a real lavapool")

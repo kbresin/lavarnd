@@ -43,6 +43,23 @@ From the shell:
     python -m lavarnd --hex 32
     python -m lavarnd 1048576 > random.bin
 
+## trickle
+
+`lavarnd.trickle` is a Python port of upstream's Perl `trickle` daemon. Every
+`period` seconds it writes `chunk_len` bytes from `lavapool` into a file,
+normally `/dev/urandom`:
+
+    python -m lavarnd.trickle [-v LVL] [-n COUNT] [chunk_len [period [file]]]
+
+It defaults to 16 bytes every 300 seconds into `/dev/urandom`, the values
+upstream's init script used. If `lavapool` can't be reached, it skips that
+cycle and keeps going, logging once when `lavapool` goes away and once when it
+comes back. `scripts/user-install.sh` installs it as `trickle.service`.
+
+Any user can write to `/dev/urandom`. Doing so mixes the data into the
+kernel's pool but doesn't raise the kernel's entropy estimate, which needs
+root. The original didn't raise it either.
+
 ## Configuration
 
 The client reads the same `cfg.random` file as the C library. It looks in:

@@ -1,6 +1,7 @@
 #!/bin/sh
 #
-# user-install.sh - install lavapool as a systemd user service, no root needed
+# user-install.sh - install lavapool and trickle as systemd user services,
+#		    no root needed
 #
 # Run from the top of a built source tree (after `make all CC_WARN=-Wall`):
 #
@@ -14,7 +15,9 @@
 #	$PREFIX/bin/lavapool			the daemon
 #	$PREFIX/lib/lavarnd/*.so		LavaRnd shared libraries
 #	$XDG_CONFIG_HOME/LavaRnd/cfg.lavapool	daemon config (kept if present)
+#	$PREFIX/lib/lavarnd/python/lavarnd/	Python client library and trickle
 #	$XDG_CONFIG_HOME/systemd/user/lavapool.service
+#	$XDG_CONFIG_HOME/systemd/user/trickle.service
 #
 # PREFIX defaults to $HOME/.local and XDG_CONFIG_HOME to $HOME/.config.
 #
@@ -26,6 +29,10 @@
 #
 #	systemctl --user enable --now lavapool.service
 #	journalctl _SYSTEMD_USER_UNIT=lavapool.service	(logs)
+#
+# and optionally, to mix LavaRnd data into /dev/urandom:
+#
+#	systemctl --user enable --now trickle.service
 #
 # To keep the service running while logged out: loginctl enable-linger
 
@@ -63,6 +70,15 @@ done
 install -m 0755 daemon/lavapool "$bindir/lavapool"
 echo "installed lavapool in $bindir and libraries in $libdir"
 
+# Python package (used by trickle.service; replaced wholesale on reinstall)
+pydir=$libdir/python
+rm -rf "$pydir/lavarnd"
+mkdir -p "$pydir/lavarnd"
+for py in python/src/lavarnd/*.py; do
+    install -m 0644 "$py" "$pydir/lavarnd/"
+done
+echo "installed the lavarnd Python package in $pydir"
+
 # daemon config: never overwrite one the user may have edited
 if [ -e "$cfgdir/cfg.lavapool" ]; then
     echo "keeping existing $cfgdir/cfg.lavapool"
@@ -74,13 +90,16 @@ else
     echo "wrote $cfgdir/cfg.lavapool ($camtype on $videodev)"
 fi
 
-# systemd user unit
-sed -e "s|@BINDIR@|$bindir|g" \
-    -e "s|@LIBDIR@|$libdir|g" \
-    -e "s|@CFGDIR@|$cfgdir|g" \
-    systemd/lavapool.service.in > "$unitdir/lavapool.service"
-chmod 0644 "$unitdir/lavapool.service"
-echo "wrote $unitdir/lavapool.service"
+# systemd user units
+for unit in lavapool trickle; do
+    sed -e "s|@BINDIR@|$bindir|g" \
+	-e "s|@LIBDIR@|$libdir|g" \
+	-e "s|@PYDIR@|$pydir|g" \
+	-e "s|@CFGDIR@|$cfgdir|g" \
+	"systemd/$unit.service.in" > "$unitdir/$unit.service"
+    chmod 0644 "$unitdir/$unit.service"
+    echo "wrote $unitdir/$unit.service"
+done
 
 systemctl --user daemon-reload
 
@@ -98,3 +117,4 @@ fi
 
 echo
 echo "start it with:  systemctl --user enable --now lavapool.service"
+echo "optional:       systemctl --user enable --now trickle.service"

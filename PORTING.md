@@ -3,6 +3,41 @@
 This is a running log of what happens when the code is built and run on a
 current system. Newest entries go at the top.
 
+## 2026-11-11 — trickle rewritten in Python
+
+`lavarnd.trickle` (`python/src/lavarnd/trickle.py`) replaces the Perl
+`daemon/trickle`. It keeps the original's arguments
+(`[-v lvl] [-n count] chunk_len period file`) and limits (chunk 1..32768,
+period ≥ 0). Like the original, it skips a cycle when `lavapool` can't be
+reached after the configured retries, and it doesn't credit entropy.
+
+Changes from the original:
+
+- The positional arguments default to the init script's values: 16 bytes,
+  300 seconds, `/dev/urandom`.
+- `-b` (fork into the background) is gone; systemd handles that.
+- Losing and regaining `lavapool` is logged once each at the default level.
+  The original only printed these at higher debug levels.
+- SIGTERM, SIGINT and SIGHUP stop it cleanly, including during the sleep
+  between cycles.
+- The init script's "preload `/var/lib/random-seed`" step isn't ported;
+  `systemd-random-seed` does that job now.
+
+`scripts/user-install.sh` now copies the Python package to
+`~/.local/lib/lavarnd/python` and installs `trickle.service`, which wants and
+starts after `lavapool.service` and runs `/usr/bin/python3 -s -m
+lavarnd.trickle 16 300 /dev/urandom` with `PYTHONPATH` pointing there. No pip
+install is needed. The wheel also gets a `lavarnd-trickle` command.
+
+Tests: 5 new unit tests (28 in total), a foreground run writing 3 chunks to
+the real `/dev/urandom`, and a systemd test with a 2-second period. That test
+stopped `lavapool` (one warning, then quiet retries), started it again (one
+"back" message, and writing resumed), and checked that SIGTERM stops trickle
+cleanly. `trickle.service` is now enabled on this machine.
+
+Still to do: an optional root mode that credits entropy with the
+`RNDADDENTROPY` ioctl, after the development stage.
+
 ## 2026-11-11 — Python client library
 
 Added `python/`, a pure-Python package `lavarnd` that replaces the removed

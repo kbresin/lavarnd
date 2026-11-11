@@ -70,7 +70,7 @@ Build and runtime findings are recorded in [`PORTING.md`](PORTING.md).
 | Commit / tag    | What it is                                     |
 |-----------------|------------------------------------------------|
 | `upstream-0.1.3`| The unmodified 0.1.3 release, as downloaded (see below) |
-| `main`          | Builds on Rocky 9 with `make all CC_WARN=-Wall`. Perl has been removed. The `pwc` camera driver now uses V4L2, and the tools capture frames and produce random output from a Logitech QuickCam Pro 4000. The `lavapool` daemon runs unprivileged as a systemd user service. A pure-Python client library is in [`python/`](python/) |
+| `main`          | Builds on Rocky 9 with `make all CC_WARN=-Wall`. Perl has been removed. The `pwc` camera driver now uses V4L2, and the tools capture frames and produce random output from a Logitech QuickCam Pro 4000. The `lavapool` daemon runs unprivileged as a systemd user service. A pure-Python client library is in [`python/`](python/), and `trickle` has been rewritten in Python |
 
 The upstream release was imported from
 `LavaRnd-0.1.3.tar.gz`
@@ -90,6 +90,7 @@ Build, then install `lavapool` as a systemd user service for your account:
     make all CC_WARN=-Wall
     scripts/user-install.sh pwc740 /dev/video0
     systemctl --user enable --now lavapool.service
+    systemctl --user enable --now trickle.service     # optional
 
 This installs `lavapool` and its libraries under `~/.local` and writes a
 config file to `~/.config/LavaRnd/cfg.lavapool`. The daemon listens on
@@ -98,8 +99,14 @@ config file to `~/.config/LavaRnd/cfg.lavapool`. The daemon listens on
 
     LD_LIBRARY_PATH=lib/shared tool/poolout 32 1 0 | od -An -tx1
 
-Its warnings (such as frames rejected by the sanity check) go to the journal:
-`journalctl _SYSTEMD_USER_UNIT=lavapool.service`. That works even where
+`trickle` writes 16 bytes from `lavapool` into `/dev/urandom` every 5 minutes,
+as upstream's did. Run as a normal user, this mixes the data into the kernel's
+pool without raising the kernel's entropy estimate. Crediting entropy needs
+root and is planned for after the development stage.
+
+Both services log to the journal:
+`journalctl _SYSTEMD_USER_UNIT=lavapool.service` (warnings such as frames
+rejected by the sanity check) and `journalctl _SYSTEMD_USER_UNIT=trickle.service`. That works even where
 journald keeps logs only in memory, which makes `journalctl --user` find
 nothing.
 

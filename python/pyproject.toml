@@ -17,6 +17,9 @@ classifiers = [
     "Topic :: Security :: Cryptography",
 ]
 
+[project.scripts]
+lavarnd-trickle = "lavarnd.trickle:main"
+
 [project.urls]
 Source = "https://github.com/kbresin/lavarnd"
 

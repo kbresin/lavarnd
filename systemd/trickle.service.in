@@ -1,0 +1,18 @@
+[Unit]
+Description=LavaRnd trickle: feed lavapool data into /dev/urandom (user service)
+Documentation=https://github.com/kbresin/lavarnd
+Wants=lavapool.service
+After=lavapool.service
+
+[Service]
+Type=simple
+Environment=PYTHONPATH=@PYDIR@
+# 16 octets every 300 seconds, as upstream's init script did.  As a user this
+# mixes data into the kernel pool without crediting entropy.
+ExecStart=/usr/bin/python3 -s -m lavarnd.trickle 16 300 /dev/urandom
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=default.target
