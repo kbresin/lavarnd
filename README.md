@@ -53,6 +53,10 @@ the camera layer.
 - Keep working with `pwc` cameras (tested on a Logitech QuickCam Pro 4000), and
   if practical add support for ordinary UVC webcams.
 - Replace the SysV init scripts with systemd units.
+- Add a Python library. Upstream's only scripting interface is in Perl, which
+  far fewer people use today. The Python library would sit on the same C client
+  API and give access to the random data from `lavapool`. We will keep the Perl
+  API for compatibility.
 - Stay as close to upstream as practical, and record every deviation and its
   reason.
 
