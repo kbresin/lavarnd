@@ -70,7 +70,7 @@ Build and runtime findings are recorded in [`PORTING.md`](PORTING.md).
 | Commit / tag    | What it is                                     |
 |-----------------|------------------------------------------------|
 | `upstream-0.1.3`| The unmodified 0.1.3 release, as downloaded (see below) |
-| `main`          | Builds on Rocky 9 with `make all CC_WARN=-Wall`. Perl has been removed. The `pwc` camera driver now uses V4L2, and the tools capture frames and produce random output from a Logitech QuickCam Pro 4000. The `lavapool` daemon has not been tried yet |
+| `main`          | Builds on Rocky 9 with `make all CC_WARN=-Wall`. Perl has been removed. The `pwc` camera driver now uses V4L2, and the tools capture frames and produce random output from a Logitech QuickCam Pro 4000. The `lavapool` daemon runs unprivileged as a systemd user service |
 
 The upstream release was imported from
 `LavaRnd-0.1.3.tar.gz`
@@ -82,6 +82,26 @@ To see everything this fork has changed, run:
 The upstream documentation is still in [`README-first`](README-first) and
 [`doc/`](doc/). It describes the 2003 behaviour, not this fork. In particular, it still
 documents the Perl API and `trickle`, which this fork has removed.
+
+## Running it (no root needed)
+
+Build, then install `lavapool` as a systemd user service for your account:
+
+    make all CC_WARN=-Wall
+    scripts/user-install.sh pwc740 /dev/video0
+    systemctl --user enable --now lavapool.service
+
+This installs `lavapool` and its libraries under `~/.local` and writes a
+config file to `~/.config/LavaRnd/cfg.lavapool`. The daemon listens on
+`127.0.0.1:23209`, which is where LavaRnd clients look by default, so no
+`/etc` config is needed. Check that it is serving random data with:
+
+    LD_LIBRARY_PATH=lib/shared tool/poolout 32 1 0 | od -An -tx1
+
+Your account must be able to open the camera, which usually means being in
+the `video` group. To keep the service running while you're logged out, run
+`loginctl enable-linger`. The upstream root install (`make install`, SysV init
+scripts) is still there but hasn't been ported.
 
 ## Authorship
 

@@ -3,6 +3,33 @@
 This is a running log of what happens when the code is built and run on a
 current system. Newest entries go at the top.
 
+## 2026-11-11 — lavapool as a systemd user service
+
+`lavapool` needs no root. It only chroots or switches user if given `-c` /
+`-u`, it reads its config from `-p`, and clients fall back to the built-in
+default `127.0.0.1:23209` when `/etc/LavaRnd/cfg.random` doesn't exist. Run
+from the build tree as an ordinary user, it opened the camera, filled its pool
+at about 32 KB/s, and served bytes to `tool/poolout`.
+
+Added `scripts/user-install.sh` and `systemd/lavapool.service.in`. The script
+copies the daemon to `~/.local/bin` and the libraries to `~/.local/lib/lavarnd`,
+writes `~/.config/LavaRnd/cfg.lavapool` (an existing one is never overwritten)
+and installs a user unit. The unit sets `LD_LIBRARY_PATH`, logs to the journal
+and restarts on failure.
+
+**Pitfall: the systemd user manager keeps its old groups.** On this machine
+the service failed with `failed to open the initial chaos channel` (exit 3)
+while the same command worked from a shell. The user manager (`user@1002`)
+had been running since before the account joined `video`. With lingering on
+it never restarts, and it can't pick up new groups by itself:
+
+    shell groups:        1003 39 190 983 1001 1046
+    user manager groups: 1003 190 983 1001 1046        (no 39 = video)
+
+Fix, needs root once: `sudo systemctl restart user@$(id -u).service`. This
+restarts every user service. The install script now checks for this with
+`systemd-run --user` and prints the fix.
+
 ## 2026-11-11 — pwc camera driver ported to V4L2
 
 `lib/pwc_drvr.c` now uses V4L2 only. Every V4L1 call and every old

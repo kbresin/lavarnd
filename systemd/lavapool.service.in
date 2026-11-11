@@ -1,0 +1,14 @@
+[Unit]
+Description=LavaRnd lavapool random number daemon (user service)
+Documentation=https://github.com/kbresin/lavarnd
+
+[Service]
+Type=simple
+Environment=LD_LIBRARY_PATH=@LIBDIR@
+ExecStart=@BINDIR@/lavapool -p @CFGDIR@/cfg.lavapool
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=default.target
