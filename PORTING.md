@@ -3,6 +3,32 @@
 This is a running log of what happens when the code is built and run on a
 current system. Newest entries go at the top.
 
+## 2026-11-11 — C270 calibration
+
+A full `camsanity` run on the C270 with the `c270` preset, using the fixed
+statistics:
+
+    camsanity c270 /dev/video0 DIR 131072 64 -L -T 10 -x 0 -d 0
+
+It ran all 131072 frames (about 73 minutes at 30 fps) as a transient user
+unit. Limits are 5 standard deviations below the observed minimums:
+
+| check               | min      | ave      | sd       | limit    |
+|---------------------|----------|----------|----------|----------|
+| top_2 uncommon fract| 0.605443 | 0.637015 | 0.012940 | 0.540744 |
+| half level          | 3        | 4.07     | 0.3006   | 1        |
+| bitdiff fraction    | 0.238734 | 0.262382 | 0.009072 | 0.193374 |
+
+`top_x` is 2, not the 3 the short run suggested: ignoring the 2 most common
+octets leaves an average uncommon fraction (0.637) closest to 0.6826895;
+ignoring 1 leaves 0.735. The half level limit of 1 only rejects a frame
+where one octet value fills half of it, and such a frame would already fail
+the uncommon fraction check, so for this camera that check adds nothing.
+
+With the limits in place, `lavapool` on the C270 served 26 MB through the
+Python client in under 10 minutes (about 45 KB/s, the camera's rate), with
+no fallback bytes and no insane frame warnings in the journal.
+
 ## 2026-11-11 — UVC webcam driver (Logitech C270)
 
 Most current webcams are USB Video Class (UVC) cameras run by `uvcvideo`, not
@@ -71,9 +97,10 @@ power-line filter off. Result: luma centred near 123, no clipping, about
 640×480.
 
 The frame statistics LavaRnd's sanity checks use differ a lot from the
-QuickCam's, mostly because the chroma bytes cluster: about 6–7 values fill
-half of each buffer (the QuickCam needed 27), and about 26% of bits change
-between frames (QuickCam: 42%). Calibration sets the limits for this.
+QuickCam's, mostly because the chroma bytes cluster: a short run put the
+half level at 6–7 (the QuickCam's is about 27; the full calibration below
+measured an average of 4), and about 26% of bits change between frames
+(QuickCam: 42%). Calibration sets the limits for this.
 
 ## 2026-11-11 — camsanity statistics fixed
 

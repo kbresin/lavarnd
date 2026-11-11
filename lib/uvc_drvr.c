@@ -132,7 +132,21 @@ struct lava_state {
     double def_diff_fract;	/* default different/same fraction */
 };
 static struct lava_state lava_state[] = {
-    {270, &cam_c270, 3.0, 0, 0.0, 0, 0.0},
+    /*
+     * Logitech C270 (USB 046d:0825), measured
+     * 2026-11-11: 131072 frames of
+     *
+     *	camsanity c270 /dev/video0 DIR 131072 64 -L -T 10 -x 0 -d 0
+     *
+     * Limits are 5 standard deviations below the observed minimums.
+     * top_x is 2 because ignoring the 2 most common octets leaves an
+     * average uncommon fraction (0.637) closest to 0.6826895.
+     *
+     *	top_2 uncommon fraction:  min 0.605443  sd 0.012940
+     *	half level:		  min 3         sd 0.3006
+     *	bitdiff fraction:	  min 0.238734  sd 0.009072
+     */
+    {270, &cam_c270, 3.0, 2, 0.540744, 1, 0.193374},
     {0, &cam_generic, 3.0, 0, 0.0, 0, 0.0},
 
     {-1, NULL, 0.0, 0, 0, 0.0, 0.0}	/* must be last */
