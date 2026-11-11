@@ -248,6 +248,14 @@ static struct camop cam_switch[] = {
      pwc_open, pwc_close,
      pwc_get_frame, pwc_msync, pwc_wait_frame},
 
+    {4000, "pwc", "qcpro4000", "Logitech_QC_Pro_4000",
+     "Logitech QuickCam Pro 4000",
+     pwc_get, pwc_set, pwc_LavaRnd,
+     pwc_check, pwc_print,
+     pwc_usage, pwc_argv,
+     pwc_open, pwc_close,
+     pwc_get_frame, pwc_msync, pwc_wait_frame},
+
     {513, "ov511", "dsbc100", "DSB-C100", "D-Link DSB-C100 camera",
      ov511_get, ov511_set, ov511_LavaRnd,
      ov511_check, ov511_print,

@@ -83,14 +83,32 @@ The upstream documentation is still in [`README-first`](README-first) and
 [`doc/`](doc/). It describes the 2003 behaviour, not this fork. In particular, it still
 documents the Perl API and `trickle`, which this fork has removed.
 
+## To do
+
+- **UVC webcam support.** Most current webcams use the standard `uvcvideo`
+  driver, not `pwc`. This needs a new LavaRnd camera driver (YUYV capture,
+  the standard V4L2 exposure and gain controls), then calibration on a real
+  UVC camera. Waiting until a UVC camera can be plugged in in place of the
+  QuickCam.
+- **Credit entropy as root.** An optional `trickle` mode using the
+  `RNDADDENTROPY` ioctl, plus a system-wide install. Planned for after the
+  development stage.
+- **Housekeeping.** Remove the unused `PERL=`/`POD2MAN=` Makefile variables
+  and the dead V4L1 `ov511` driver, fix the remaining upstream compiler
+  warnings, and then turn warnings back into errors.
+
 ## Running it (no root needed)
 
 Build, then install `lavapool` as a systemd user service for your account:
 
     make all CC_WARN=-Wall
-    scripts/user-install.sh pwc740 /dev/video0
+    scripts/user-install.sh qcpro4000 /dev/video0
     systemctl --user enable --now lavapool.service
     systemctl --user enable --now trickle.service     # optional
+
+Use the camera type that matches your camera
+(`LD_LIBRARY_PATH=lib/shared tool/camset list all`). `qcpro4000` is the
+Logitech QuickCam Pro 4000, calibrated for this fork; see `PORTING.md`.
 
 This installs `lavapool` and its libraries under `~/.local` and writes a
 config file to `~/.config/LavaRnd/cfg.lavapool`. The daemon listens on

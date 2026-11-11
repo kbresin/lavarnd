@@ -595,6 +595,22 @@ struct lava_state {
 static struct lava_state lava_state[] = {
     {730, &cam_730740, 3.0, 17, 0.557056, 20, 0.300359},
     {740, &cam_730740, 3.0, 17, 0.520855, 20, 0.318406},
+    /*
+     * Logitech QuickCam Pro 4000 (USB 046d:08b2, a Philips 740-family
+     * camera) on the V4L2 pwc driver, measured 2026-11-11 with the case
+     * sealed: 80459 frames of
+     *
+     *	camsanity pwc740 /dev/video0 DIR 131072 64 -L -T 10 -x 0 -d 0
+     *
+     * (stopped early).  Limits are 5 standard deviations below the
+     * observed minimums, using true standard deviations; upstream's
+     * camsanity stddev() understates them.  See PORTING.md.
+     *
+     *	top_17 uncommon fraction: min 0.676562  sd 0.003092
+     *	half level:		  min 27        sd 0.4934
+     *	bitdiff fraction:	  min 0.411445  sd 0.001258
+     */
+    {4000, &cam_730740, 3.0, 17, 0.661101, 24, 0.405155},
 
     {-1, NULL, 0.0, 0, 0, 0.0, 0.0}	/* must be last */
 };

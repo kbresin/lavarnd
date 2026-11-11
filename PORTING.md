@@ -3,6 +3,58 @@
 This is a running log of what happens when the code is built and run on a
 current system. Newest entries go at the top.
 
+## 2026-11-11 — Sanity limits calibrated for the QuickCam Pro 4000
+
+Until now this camera ran with the `pwc740` profile, whose sanity limits were
+measured in 2003 on a Philips 740. These limits decide which frames `lavapool`
+rejects as not noisy enough, for example because light is getting in. I
+measured new ones for this camera with the case sealed:
+
+    camsanity pwc740 /dev/video0 DIR 131072 64 -L -T 10 -x 0 -d 0 -v 2
+
+These are upstream's own calibration settings, with the sanity filter turned
+off so every frame is measured. The run was planned for 131,072 frames
+(73 min) but stopped after **80,459 frames (44.7 min)** when the session that
+started it ended. `camsanity` writes one line per frame as it goes, so the
+data for those frames is complete. There was no drift: each third of the run
+has the same averages to within 0.0003, so the run wasn't repeated.
+
+**Two bugs in upstream's `camsanity` statistics** (left in `tool/camsanity.c`
+for now):
+
+1. Averages and spreads include an unused slot for frame 0 with value 0.
+2. `stddev()` computes `(Σd² − (Σ|d|)²/n) / n` with `d = x − mean`. That is
+   the variance of the *absolute* deviations, about 0.6× the true standard
+   deviation for normal data. So upstream's "5-sigma" margins were really
+   about 3 sigma.
+
+I recomputed the limits from the per-frame files both ways. They came out
+close, and the new profile uses the corrected statistics (true sample standard
+deviation, frame-0 slot excluded):
+
+| Measure | Min observed | Mean | Std dev | Limit (min − 5σ) | Old `pwc740` limit |
+|---|---|---|---|---|---|
+| uncommon-value fraction, top 17 values | 0.676562 | 0.690829 | 0.003092 | **0.661101** | 0.520855 |
+| half level | 27 | 28.42 | 0.4934 | **24** | 20 |
+| fraction of bits changing between frames | 0.411445 | 0.416514 | 0.001258 | **0.405155** | 0.318406 |
+
+`top_x` stays at 17: that is where the average uncommon fraction is closest to
+0.6827, upstream's 1-sigma rule.
+
+This camera is noisier and steadier than the 2003 one, so its limits are much
+tighter, and abnormal frames such as light leaks are caught much sooner.
+
+**New camera type `qcpro4000`** (`lib/camop.c`, model 4000 on the `pwc`
+module). It uses the same preset camera settings as `pwc730`/`pwc740` and the
+limits above; the 2003 entries are unchanged. `lavapool`'s config on this
+machine now uses `chaos=:driver qcpro4000 /dev/video0 -L`.
+
+Check after switching: `lavapool` ran 2 minutes (about 3,600 frames) under
+the new limits with no rejected frames logged. A 256 KiB read through the
+Python client had entropy 7.99933 bits/byte and chi-square 242.9.
+
+Not done: the case-open vs. sealed light test (skipped by choice).
+
 ## 2026-11-11 — trickle rewritten in Python
 
 `lavarnd.trickle` (`python/src/lavarnd/trickle.py`) replaces the Perl
