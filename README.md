@@ -60,17 +60,17 @@ portable C. Our current plan is to keep these and replace the camera layer.
   client API and give access to the random data from `lavapool`.
 - Rewrite the `trickle` daemon in Python on top of that library. `trickle`
   feeds LavaRnd data into the kernel's `/dev/random` pool.
-
-Build and runtime findings are recorded in [`PORTING.md`](PORTING.md).
 - Stay as close to upstream as practical, and record every deviation and its
   reason.
+
+Build and runtime findings are recorded in [`PORTING.md`](PORTING.md).
 
 ## Status
 
 | Commit / tag    | What it is                                     |
 |-----------------|------------------------------------------------|
 | `upstream-0.1.3`| The unmodified 0.1.3 release, as downloaded (see below) |
-| `main`          | Builds on Rocky 9 with `make all CC_WARN=-Wall`. Perl has been removed. The camera layer still needs porting to V4L2 |
+| `main`          | Builds on Rocky 9 with `make all CC_WARN=-Wall`. Perl has been removed. The `pwc` camera driver now uses V4L2, and the tools capture frames and produce random output from a Logitech QuickCam Pro 4000. The `lavapool` daemon has not been tried yet |
 
 The upstream release was imported from
 `LavaRnd-0.1.3.tar.gz`

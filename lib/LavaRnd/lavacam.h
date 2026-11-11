@@ -93,6 +93,11 @@ struct opsize {
     int image_len;	/* length of the image buffer, or 0 */
     void *chaos;	/* pointer to start of chaotic data in image or NULL */
     int chaos_len;	/* max length of the chaos segment if image, or 0 */
+    /* V4L2 streaming buffers - used by drivers that capture via V4L2 mmap */
+    int nbufs;				/* number of mmapped V4L2 buffers */
+    void *buf_start[VIDEO_MAX_FRAME];	/* start of each mmapped buffer */
+    size_t buf_len[VIDEO_MAX_FRAME];	/* length of each mmapped buffer */
+    int cur_buf;			/* dequeued buffer index, or -1 */
 };
 /*
  * NOTE: The offsets array is filled in by xxx_opsize() during the call
