@@ -14,10 +14,16 @@ Pages:
     /                       roll from a form: d4..d100 buttons or dice notation
     /api/roll?dice=3d6+2    JSON: {"dice", "count", "sides", "modifier",
                             "rolls", "total", "source"}
+
+Behind a reverse proxy on a path prefix, have the proxy send
+``X-Forwarded-Prefix`` (e.g. ``/dice``) and set ``LAVARND_DICE_PROXIED=1``;
+links then include the prefix. Only do that when the app listens where the
+proxy alone can reach it, since the X-Forwarded headers are then trusted.
 """
 
 from __future__ import annotations
 
+import os
 import random
 import re
 from urllib.parse import parse_qs
@@ -25,6 +31,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 from flask import Flask, jsonify, render_template_string, request
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 import lavarnd
 
@@ -122,10 +129,10 @@ PAGE = """<!doctype html>
   <h1>LavaRnd Dice</h1>
   <p class="sub">Rolled with random numbers from webcam sensor noise.</p>
 
-  <form class="quick" action="/" method="get">
+  <form class="quick" action="{{ url_for('index') }}" method="get">
     {% for s in quick %}<button name="dice" value="1d{{ s }}">d{{ s }}</button>{% endfor %}
   </form>
-  <form class="custom" action="/" method="get">
+  <form class="custom" action="{{ url_for('index') }}" method="get">
     <input name="dice" value="{{ dice }}" placeholder="3d6+2" aria-label="dice notation">
     <button>Roll</button>
   </form>
@@ -148,10 +155,19 @@ PAGE = """<!doctype html>
 """
 
 
-def create_app(rng: Optional[random.Random] = None) -> Flask:
-    """Build the app. ``rng`` defaults to a :class:`lavarnd.LavaRandom`."""
+def create_app(rng: Optional[random.Random] = None, proxied: Optional[bool] = None) -> Flask:
+    """Build the app.
+
+    ``rng`` defaults to a :class:`lavarnd.LavaRandom`. ``proxied`` (default:
+    the ``LAVARND_DICE_PROXIED`` environment variable) trusts one reverse
+    proxy's X-Forwarded-For/Proto/Host/Prefix headers.
+    """
     app = Flask(__name__)
     app.config["RNG"] = rng if rng is not None else lavarnd.LavaRandom()
+    if proxied is None:
+        proxied = os.environ.get("LAVARND_DICE_PROXIED") == "1"
+    if proxied:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
     @app.get("/")
     def index():

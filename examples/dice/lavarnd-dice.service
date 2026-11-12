@@ -11,7 +11,10 @@ WorkingDirectory=/opt/lavarnd-dice
 # app.py lives in /opt/lavarnd-dice; the lavarnd package comes from
 # `make install` (/usr/local/lib/lavarnd/python).
 Environment=PYTHONPATH=/opt/lavarnd-dice:/usr/local/lib/lavarnd/python
-ExecStart=/usr/bin/python3 -m gunicorn --bind 0.0.0.0:8099 --workers 2 --access-logfile - app:app
+# Served through a reverse proxy (see README), so listen on localhost only and
+# trust the proxy's X-Forwarded-* headers, including X-Forwarded-Prefix.
+Environment=LAVARND_DICE_PROXIED=1
+ExecStart=/usr/bin/python3 -m gunicorn --bind 127.0.0.1:8099 --workers 2 --access-logfile - app:app
 Restart=on-failure
 RestartSec=5
 

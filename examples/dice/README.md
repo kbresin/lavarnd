@@ -44,6 +44,22 @@ After `make install` (which installs the `lavarnd` package under
     systemctl daemon-reload
     systemctl enable --now lavarnd-dice.service
 
-It listens on port 8099 on all interfaces, with gunicorn and 2 workers,
-running as an unprivileged dynamic user. Open the port only to networks
-you trust, or put it behind your web server.
+It runs gunicorn with 2 workers as an unprivileged dynamic user, listening
+on `127.0.0.1:8099` only. Put a reverse proxy in front of it. For Apache
+on a path prefix (needs `mod_proxy`, `mod_proxy_http` and `mod_headers`):
+
+    RedirectMatch 301 ^/dice$ /dice/
+    <Location /dice/>
+        ProxyPass        http://127.0.0.1:8099/
+        ProxyPassReverse http://127.0.0.1:8099/
+        RequestHeader set X-Forwarded-Prefix "/dice"
+        RequestHeader set X-Forwarded-Proto "https"
+    </Location>
+
+The unit sets `LAVARND_DICE_PROXIED=1`, so the app trusts these
+`X-Forwarded-*` headers and puts the prefix in its links. That's only safe
+because nothing but the proxy can reach port 8099.
+
+Every roll draws from `lavapool`, which refills at the camera's rate
+(roughly 15 KB/s for a QuickCam). Heavy public use could drain the pool and
+leave `trickle` short, so rate-limit at the proxy if that matters.

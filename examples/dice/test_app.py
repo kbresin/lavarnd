@@ -89,6 +89,14 @@ class AppTests(unittest.TestCase):
         self.assertEqual(resp.status_code, 400)
         self.assertIn("error", resp.get_json())
 
+    def test_links_follow_proxy_prefix(self):
+        prefixed = create_app(random.Random(4), proxied=True).test_client()
+        resp = prefixed.get("/", headers={"X-Forwarded-Prefix": "/dice"})
+        self.assertIn(b'action="/dice/"', resp.data)
+        # without proxying turned on, the header is ignored
+        resp = self.client.get("/", headers={"X-Forwarded-Prefix": "/dice"})
+        self.assertIn(b'action="/"', resp.data)
+
     def test_lavapool_down_is_503_not_a_fallback(self):
         client = create_app(Unavailable()).test_client()
         self.assertEqual(client.get("/api/roll?dice=1d6").status_code, 503)
