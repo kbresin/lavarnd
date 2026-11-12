@@ -383,7 +383,7 @@ lava_raw_get_url(char *url, u_int32_t offset, int chk_ring)
      * ensure that we have a buffer
      */
     if (lava_url_content == NULL || con_maxlen <= 0) {
-	lava_url_content = (char *)malloc(LAVA_INIT_SIZE + offset);
+	lava_url_content = (u_int8_t *)malloc(LAVA_INIT_SIZE + offset);
 	if (lava_url_content == NULL) {
 	    /* out of memory */
 	    lava_url_tidy(fd);
@@ -410,7 +410,7 @@ lava_raw_get_url(char *url, u_int32_t offset, int chk_ring)
 
 	    /* expand the allocated size of the buffer */
 	    lava_url_content =
-	      (char *)realloc(lava_url_content, con_maxlen * 2);
+	      (u_int8_t *)realloc(lava_url_content, con_maxlen * 2);
 	    if (lava_url_content == NULL) {
 		/* out of memory */
 		lava_url_tidy(fd);
@@ -461,12 +461,12 @@ lava_raw_get_url(char *url, u_int32_t offset, int chk_ring)
     if (con_len - offset > 0) {
 
 	/* find the end of the 1st token */
-	i = strcspn(lava_url_content + offset, " \t\r\n");
+	i = strcspn((char *)lava_url_content + offset, " \t\r\n");
 	if (i == 0) {
 	    /* missing 1st token end */
 	    return LAVAERR_BADDATA;
 	}
-	p = lava_url_content + offset + i;
+	p = (char *)lava_url_content + offset + i;
 	if (*p == '\r' || *p == '\n') {
 	    /* only 1 token on 1st line */
 	    return LAVAERR_BADDATA;

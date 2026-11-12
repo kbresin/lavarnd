@@ -106,7 +106,7 @@ try_sha1_file(char *path, SHA_INFO *hash)
      * hash the buffer
      */
     lava_sha_init(hash);
-    lava_sha_update(hash, buf, readsiz);
+    lava_sha_update(hash, (u_int8_t *)buf, readsiz);
     lava_sha_final2(hash);
     return;
 }

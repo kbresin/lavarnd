@@ -380,7 +380,7 @@ main(int argc, char *argv[])
     memset(turn, '!', output_len);
     turn_ret = lava_blk_turn(input, (int)sizeof(input)-1, 5, turn);
     dbg(3, "input turned: %100s", turn);
-    if (strcmp(turned_input, turn) != 0) {
+    if (strcmp(turned_input, (char *)turn) != 0) {
 	fatal(23, "lavarnd turn returned the wrong string");
 	/*NOTREACHED*/
     }

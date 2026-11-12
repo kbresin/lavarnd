@@ -2013,7 +2013,7 @@ lava_preload(int lavacnt, int seed_s100)
 		 * case: expand existing buffer if too small
 		 */
 	    } else if (lavabuf.size < lavacnt) {
-		char *new;	/* our new buffer */
+		u_int8_t *new;	/* our new buffer */
 
 		/*
 		 * allocate a larger buffer
