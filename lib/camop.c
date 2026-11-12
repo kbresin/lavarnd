@@ -188,6 +188,7 @@
 #include <time.h>
 
 #include "LavaRnd/lavacam.h"
+#include "LavaRnd/v4l2cam.h"
 
 
 struct camop {
@@ -1139,4 +1140,22 @@ lavacam_wait_frame(int type, int cam_fd, double max_wait)
      * wait until the next frame
      */
     return cam_switch[type].wait_frame(cam_fd, max_wait);
+}
+
+
+/*
+ * lavacam_alive - determine if an open camera is still there
+ *
+ * All camera drivers use V4L2, so this is the same for every camera type.
+ *
+ * given:
+ *	cam_fd	open camera descriptor
+ *
+ * returns:
+ *	0 ==> camera responds, <0 ==> it does not (errno says why)
+ */
+int
+lavacam_alive(int cam_fd)
+{
+    return v4l2cam_alive(cam_fd);
 }

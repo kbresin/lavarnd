@@ -159,7 +159,13 @@ static int const chaos_preselect_ready[LAST_STATE+1] = {
  */
 static void open_chaos(chaos *ch, char *cmd);
 static void read_chaos(chaos *ch);
-static void chaos_force_close(chaos *ch);
+static void chaos_force_close(chaos *ch, char *why, int err);
+static void chaos_check_camera(chaos *ch);
+
+/*
+ * CAMERA_CHECK_SECS - how often a driver channel checks the camera is there
+ */
+#define CAMERA_CHECK_SECS (5.0)
 static int willing_to_frame_dump(chaos *ch);
 static double time_to_next_dump(chaos *ch);
 static int frame_dump_if_ready(chaos *ch);
@@ -217,6 +223,9 @@ do_chaos_op(chaos *ch, chancycle cycle)
 		ch->indx, STATE_NAME(ch->curstate), STATE_NAME(ch->nxtstate));
 	    if (willing_to_frame_dump(ch)) {
 		need_cycle_before(ch->indx, time_to_next_dump(ch));
+	    }
+	    if (ch->driver == TRUE) {
+		chaos_check_camera(ch);
 	    }
 	    break;
 
@@ -772,6 +781,7 @@ open_chaos(chaos *ch, char *cmd)
     } else {
 	dbg(3, "open_chaos", "chan[%d]: using command: %s", ch->indx, cmd);
     }
+    ch->next_alive = about_now + CAMERA_CHECK_SECS;
     ch->curstate = OPEN;
     ch->nxtstate = READ;
     free(cmdline);
@@ -842,7 +852,7 @@ read_chaos(chaos *ch)
 	if (ret < 0) {
 	    dbg(2, "read_chaos",
 		"chan[%d]: lavacam_get_frame error: %d", ch->indx, ret);
-	    chaos_force_close(ch);
+	    chaos_force_close(ch, "camera frame read failed", ret);
 	    return;
 	}
 
@@ -950,7 +960,7 @@ read_chaos(chaos *ch)
 		    dbg(2, "read_chaos",
 			   "chan[%d]: fill_pool_from_chaos_buf error: %d",
 			   ch->indx, ret);
-		    chaos_force_close(ch);
+		    chaos_force_close(ch, "adding a frame to the pool failed", ret);
 		    return;
 		}
 	    }
@@ -964,7 +974,7 @@ read_chaos(chaos *ch)
 	if (ret < 0) {
 	    dbg(2, "read_chaos",
 		"chan[%d]: lavacam_msync error: %d", ch->indx, ret);
-	    chaos_force_close(ch);
+	    chaos_force_close(ch, "camera frame release failed", ret);
 	    return;
 	}
 
@@ -978,7 +988,7 @@ read_chaos(chaos *ch)
 	if (ret < 0) {
 	    dbg(2, "read_chaos",
 		   "chan[%d]: fill_pool_from_fd error: %d", ch->indx, ret);
-	    chaos_force_close(ch);
+	    chaos_force_close(ch, "chaos command read failed", ret);
 	    return;
 	}
     }
@@ -1125,27 +1135,61 @@ close_chaos(chaos *ch)
 
 
 /*
- * chaos_force_close - force close of a non-HALTed chaos channel
+ * chaos_force_close - close a failed chaos channel and exit
  *
- * We will ensure that a chaos channel is closed.  If the descriptor is
- * open, we will attempt to close it.
- *
- * On success the channel is left in a CLOSE state.
- *
- * This function does nothing if the channel is not a TYPE_CHAOS type.
+ * Nothing reopens a chaos channel once it is closed: lavapool opens its
+ * chaos source once, at startup.  So rather than carry on without a source
+ * (serving what is left in the pool, then nothing), we close the channel
+ * and exit with an error.  The service manager (systemd: Restart=on-failure)
+ * restarts lavapool, which reopens the source, or exits again at startup if
+ * it is still missing.
  *
  * given:
  *	ch 	chaos channel
+ *	why	what failed
+ *	err	error code from the failed operation
  */
 static void
-chaos_force_close(chaos *ch)
+chaos_force_close(chaos *ch, char *why, int err)
 {
-    /* announce */
-    dbg(2, "chaos_force_close", "chan[%d]: will be forced to CLOSE", ch->indx);
-
-    /* close */
     close_chaos(ch);
-    return;
+    fatal(14, "chaos_force_close",
+	  "chan[%d]: lost the chaos source: %s: %s; exiting so lavapool can "
+	  "be restarted", ch->indx, why, lava_err_name(err));
+    /*NOTREACHED*/
+}
+
+
+/*
+ * chaos_check_camera - exit if a driver channel's camera has gone away
+ *
+ * An unplugged camera stops delivering frames, but select() may never
+ * report its descriptor as readable or in error, so lavapool would wait
+ * forever.  Every CAMERA_CHECK_SECS seconds while reading, ask the driver
+ * if the camera is still there, and exit (see chaos_force_close) if not.
+ * This runs whatever the pool level, including when the pool is full and
+ * no frames are being read.
+ *
+ * given:
+ *	ch 	chaos channel using a camera driver
+ */
+static void
+chaos_check_camera(chaos *ch)
+{
+    int saved_errno;		/* errno from the failed check */
+
+    if (about_now >= ch->next_alive) {
+	if (lavacam_alive(ch->fd) < 0) {
+	    saved_errno = errno;
+	    close_chaos(ch);
+	    fatal(15, "chaos_check_camera",
+		  "chan[%d]: camera no longer responds: %s; exiting so "
+		  "lavapool can be restarted", ch->indx, strerror(saved_errno));
+	    /*NOTREACHED*/
+	}
+	ch->next_alive = about_now + CAMERA_CHECK_SECS;
+    }
+    need_cycle_before(ch->indx, ch->next_alive - about_now);
 }
 
 

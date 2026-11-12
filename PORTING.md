@@ -3,6 +3,39 @@
 This is a running log of what happens when the code is built and run on a
 current system. Newest entries go at the top.
 
+## 2026-11-12 — lavapool exits when the camera goes away
+
+Unplugging the QuickCam from a running `lavapool` (x86 box, system install)
+showed two problems:
+
+- **It never noticed.** After the unplug, `select()` never reported the
+  camera's descriptor as readable or in error, so `lavapool` waited forever.
+  It served what was left in its pool, then clients timed out. Nothing was
+  logged, and the process sat idle.
+- **It couldn't have recovered anyway.** The chaos (camera) channel is
+  opened once, by `mk_open_chaos()` at startup. On a read error,
+  `chaos_force_close()` closed it, and nothing ever reopened it.
+
+Fix:
+
+- `lavacam_alive()` (`v4l2cam_alive()`) asks the driver whether the camera is
+  still there with `VIDIOC_QUERYCAP`. Every ioctl fails once the device is
+  gone.
+- While a driver channel is reading, `chaos_check_camera()` runs that check
+  every 5 seconds (`CAMERA_CHECK_SECS`) and asks for a cycle at least that
+  often. It runs whatever the pool level, including when the pool is full and
+  no frames are being read.
+- If the camera is gone, or a read, release or pool fill fails,
+  `lavapool` logs why and exits with an error, instead of closing the channel
+  and carrying on without a source. systemd (`Restart=on-failure`,
+  `RestartSec=10`) restarts it. At startup `lavapool` already exits (code 3)
+  if it can't open the camera, so while the camera is missing it retries
+  every 10 seconds and comes back once the camera does.
+
+Tested here: the check rejects a non-camera descriptor (`ENOTTY`) and a bad
+one, and with no camera `lavapool` exits 3 at startup. The unplug itself is
+still to be tested on the Pi, which now has the camera.
+
 ## 2026-11-12 — Running on a Raspberry Pi
 
 Built and installed natively on a Raspberry Pi (aarch64, gcc 14, `dwc_otg`

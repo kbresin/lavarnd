@@ -685,6 +685,7 @@ camop.o: LavaRnd/have/pwc_cam.h
 camop.o: LavaRnd/lavacam.h
 camop.o: LavaRnd/uvc_drvr.h
 camop.o: LavaRnd/uvc_state.h
+camop.o: LavaRnd/v4l2cam.h
 camop.o: LavaRnd/lavaerr.h
 camop.o: LavaRnd/pwc_drvr.h
 camop.o: LavaRnd/pwc_state.h

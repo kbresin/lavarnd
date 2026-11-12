@@ -85,11 +85,6 @@ documents the Perl API and `trickle`, which this fork has removed.
 
 ## To do
 
-- **Camera unplug.** `lavapool` doesn't notice when the camera is unplugged
-  (it waits on the camera's descriptor forever). It also opens the camera
-  only at startup, so it never reopens it after a read error. It needs a
-  periodic "still there?" check (`VIDIOC_QUERYCAP` fails with `ENODEV`) and a
-  reopen. Until then: `systemctl restart lavapool` after reseating the camera.
 - **Old install rules.** Upstream's per-directory `install` rules (SysV init
   script, `/usr/lib`, RCS check-ins) are no longer reached from `make install`
   and could be removed.
@@ -118,6 +113,10 @@ open the camera. `lavarnd-trickle` gets only `CAP_SYS_ADMIN`, which it needs to
 add 16 bytes to `/dev/random` every 5 minutes with `RNDADDENTROPY`, crediting
 8 bits of entropy per byte (`trickle -e 8`). Edit the unit to credit less.
 Logs: `journalctl -u lavapool -u lavarnd-trickle`.
+
+If the camera is unplugged or stops working, `lavapool` exits with an error
+within about 5 seconds and systemd restarts it every 10 seconds until the
+camera is back. Clients get nothing while it's gone.
 
 `make uninstall` removes it all except `/etc/LavaRnd`; `make uninstall
 PURGE=1` removes that too. Don't run the system and user installs at the same

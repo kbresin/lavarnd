@@ -639,3 +639,32 @@ v4l2cam_wait_frame(int cam_fd, double max_wait)
      */
     return ret;
 }
+
+
+/*
+ * v4l2cam_alive - determine if an open camera is still there
+ *
+ * Once a camera is unplugged every ioctl on its descriptor fails (ENODEV),
+ * but select() on it may never report anything.  VIDIOC_QUERYCAP is a
+ * harmless ioctl that works at any time, including while streaming.
+ *
+ * given:
+ *	cam_fd	open camera descriptor
+ *
+ * returns:
+ *	0 ==> camera responds, <0 ==> it does not (errno says why)
+ */
+int
+v4l2cam_alive(int cam_fd)
+{
+    struct v4l2_capability cap;
+
+    if (cam_fd < 0) {
+	errno = EBADF;
+	return LAVACAM_ERR_ARG;
+    }
+    if (v4l2cam_xioctl(cam_fd, VIDIOC_QUERYCAP, &cap) < 0) {
+	return LAVACAM_ERR_NOCAM;
+    }
+    return LAVACAM_ERR_OK;
+}

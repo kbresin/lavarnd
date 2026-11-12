@@ -49,6 +49,7 @@ extern int v4l2cam_release(int cam_fd, struct opsize *siz);
 extern int v4l2cam_get_frame(int cam_fd, struct opsize *siz);
 extern int v4l2cam_msync(int cam_fd, struct opsize *siz);
 extern int v4l2cam_wait_frame(int cam_fd, double max_wait);
+extern int v4l2cam_alive(int cam_fd);
 
 
 #endif /* __LAVARND_V4L2CAM_H__ */

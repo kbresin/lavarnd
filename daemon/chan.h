@@ -174,6 +174,7 @@ struct chaos_s {
     struct opsize siz;	/* how and where to read from device */
     struct lavacam_flag flag;	/* flags set via lavacam_argv() */
     double next_file;	/* >0 ==> time of next savefile */
+    double next_alive;	/* time of next check that the camera is there */
 };
 typedef struct chaos_s chaos;
 

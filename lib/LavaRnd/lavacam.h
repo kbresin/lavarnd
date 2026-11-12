@@ -181,6 +181,7 @@ extern int lavacam_sanity(struct opsize *siz);
 extern int lavacam_msync(int type, int cam_fd, union lavacam *cam,
 			 struct opsize *siz);
 extern int lavacam_wait_frame(int type, int cam_fd, double max_wait);
+extern int lavacam_alive(int cam_fd);
 extern int chaos_zone(int set, int palette, int frame_size,
 		      int height, int width, int *chaos_offset, int *chaos_len);
 extern const char *palette_name(int set, int palette);
