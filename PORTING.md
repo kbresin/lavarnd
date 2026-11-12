@@ -3,6 +3,30 @@
 This is a running log of what happens when the code is built and run on a
 current system. Newest entries go at the top.
 
+## 2026-11-12 — Running on a Raspberry Pi
+
+Built and installed natively on a Raspberry Pi (aarch64, gcc 14, `dwc_otg`
+USB) with the QuickCam Pro 4000 moved over from the x86 box:
+
+- `make all` builds cleanly once the shared libraries are linked with `cc`
+  (entry below). `chk_lavarnd` passes.
+- The kernel's `pwc` driver picks up the camera as `/dev/video0`, and `camget
+  qcpro4000` opens it through the V4L2 driver with the calibrated limits.
+- **The calibration carries over.** 900 frames of `camsanity` with `-L`:
+
+  | check               | Pi       | x86 box  | limit    |
+  |---------------------|----------|----------|----------|
+  | bitdiff fraction    | 0.414785 | 0.414486 | 0.405155 |
+  | half level          | 27       | 27       | 24       |
+  | top_17 uncom fract  | 0.675417 | 0.674531 | 0.661101 |
+
+  So the limits belong to the camera, not the host, and the Pi's USB
+  controller isn't corrupting frames.
+- `make install CAMTYPE=qcpro4000 VIDEODEV=/dev/video0` as root, then
+  `systemctl enable --now lavapool.service lavarnd-trickle.service`: both
+  are active with a clean journal, and the Python client gets data from the
+  Pi's `lavapool`.
+
 ## 2026-11-12 — Shared libraries linked with cc, for aarch64
 
 The first build on a Raspberry Pi (aarch64, gcc 14) failed linking

@@ -70,7 +70,7 @@ Build and runtime findings are recorded in [`PORTING.md`](PORTING.md).
 | Commit / tag    | What it is                                     |
 |-----------------|------------------------------------------------|
 | `upstream-0.1.3`| The unmodified 0.1.3 release, as downloaded (see below) |
-| `main`          | Builds on Rocky 9 with `make all`, with no compiler warnings. Perl has been removed. The `pwc` camera driver now uses V4L2, and a new `uvc` driver supports ordinary USB webcams. Tested with a Logitech QuickCam Pro 4000 (`pwc`) and a Logitech C270 (UVC). `make install` sets up `lavapool` and an entropy-crediting `trickle` as unprivileged systemd system services, and the user-level install still works without root. A pure-Python client library is in [`python/`](python/), and `trickle` has been rewritten in Python |
+| `main`          | Builds on Rocky 9 with `make all`, with no compiler warnings. Perl has been removed. The `pwc` camera driver now uses V4L2, and a new `uvc` driver supports ordinary USB webcams. Tested with a Logitech QuickCam Pro 4000 (`pwc`) and a Logitech C270 (UVC), on x86-64 and on a Raspberry Pi (aarch64). `make install` sets up `lavapool` and an entropy-crediting `trickle` as unprivileged systemd system services, and the user-level install still works without root. A pure-Python client library is in [`python/`](python/), and `trickle` has been rewritten in Python |
 
 The upstream release was imported from
 `LavaRnd-0.1.3.tar.gz`
@@ -85,9 +85,11 @@ documents the Perl API and `trickle`, which this fork has removed.
 
 ## To do
 
-- **Raspberry Pi.** Build natively on a Pi (`make all`, then `make install
-  CAMTYPE=...` as root) with a USB webcam, and check that the camera's
-  calibration carries over.
+- **Camera unplug.** `lavapool` doesn't notice when the camera is unplugged
+  (it waits on the camera's descriptor forever). It also opens the camera
+  only at startup, so it never reopens it after a read error. It needs a
+  periodic "still there?" check (`VIDIOC_QUERYCAP` fails with `ENODEV`) and a
+  reopen. Until then: `systemctl restart lavapool` after reseating the camera.
 - **Old install rules.** Upstream's per-directory `install` rules (SysV init
   script, `/usr/lib`, RCS check-ins) are no longer reached from `make install`
   and could be removed.
