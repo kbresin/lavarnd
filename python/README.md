@@ -49,7 +49,7 @@ From the shell:
 `period` seconds it writes `chunk_len` bytes from `lavapool` into a file,
 normally `/dev/urandom`:
 
-    python -m lavarnd.trickle [-v LVL] [-n COUNT] [chunk_len [period [file]]]
+    python -m lavarnd.trickle [-v LVL] [-n COUNT] [-e BITS] [chunk_len [period [file]]]
 
 It defaults to 16 bytes every 300 seconds into `/dev/urandom`, the values
 upstream's init script used. If `lavapool` can't be reached, it skips that
@@ -57,8 +57,16 @@ cycle and keeps going, logging once when `lavapool` goes away and once when it
 comes back. `scripts/user-install.sh` installs it as `trickle.service`.
 
 Any user can write to `/dev/urandom`. Doing so mixes the data into the
-kernel's pool but doesn't raise the kernel's entropy estimate, which needs
-root. The original didn't raise it either.
+kernel's pool but doesn't raise the kernel's entropy estimate. The original
+only did that.
+
+`-e BITS` (`--credit`) adds each chunk with the `RNDADDENTROPY` ioctl
+instead, crediting BITS bits of entropy per byte (1 to 8). That needs
+`CAP_SYS_ADMIN`. Without it, trickle exits at startup with an error rather
+than failing every cycle. Crediting is a claim about how unpredictable the
+data is, so choose BITS deliberately. On current kernels, once the pool is
+initialised the credit only affects the reported estimate, not what readers
+get.
 
 ## Configuration
 

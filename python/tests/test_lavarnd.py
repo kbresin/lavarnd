@@ -17,6 +17,7 @@ import os
 import random
 import socket
 import socketserver
+import struct
 import tempfile
 import threading
 import time
@@ -379,8 +380,35 @@ class TrickleTests(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertEqual(os.path.getsize(self.path), 96)
 
+    def test_rndaddentropy_number(self):
+        # _IOW('R', 0x03, int[2]) from <linux/random.h> on x86 and ARM
+        self.assertEqual(trickle.RNDADDENTROPY, 0x40085203)
+
+    def test_credit_uses_rndaddentropy(self):
+        calls = []
+        with FakeLavapool() as srv, \
+                mock.patch.object(trickle.fcntl, "ioctl",
+                                  lambda fd, req, arg: calls.append((fd, req, arg))):
+            n = trickle.trickle(lavarnd.LavaPool(srv.config), self.fd, 16, 0,
+                                count=2, credit=8)
+        self.assertEqual(n, 2)
+        self.assertEqual(os.path.getsize(self.path), 0)  # nothing write()n
+        for fd, req, arg in calls:
+            self.assertEqual((fd, req), (self.fd, trickle.RNDADDENTROPY))
+            bits, size = struct.unpack("ii", arg[:8])
+            self.assertEqual((bits, size, len(arg)), (128, 16, 24))
+
+    @unittest.skipIf(os.geteuid() == 0, "root may hold CAP_SYS_ADMIN")
+    def test_credit_without_permission_fails_at_startup(self):
+        err = io.StringIO()
+        with redirect_stderr(err):
+            rc = trickle.main(["-e", "8", "-n", "1", "16", "0", "/dev/urandom"])
+        self.assertEqual(rc, 1)
+        self.assertIn("CAP_SYS_ADMIN", err.getvalue())
+
     def test_cli_validation(self):
-        for args in (["0"], ["40000"], ["16", "-1"], ["16", "1", "/nonexistent/x"]):
+        for args in (["0"], ["40000"], ["16", "-1"], ["16", "1", "/nonexistent/x"],
+                     ["-e", "9"], ["-e", "-1"]):
             with self.assertRaises(SystemExit), redirect_stderr(io.StringIO()):
                 trickle.main(args)
 
