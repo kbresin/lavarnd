@@ -85,7 +85,12 @@ documents the Perl API and `trickle`, which this fork has removed.
 
 ## To do
 
-- **Housekeeping.** Remove the unused `PERL=`/`POD2MAN=` Makefile variables.
+- **Raspberry Pi.** Build natively on a Pi (`make all`, then `make install
+  CAMTYPE=...` as root) with a USB webcam, and check that the camera's
+  calibration carries over.
+- **Old install rules.** Upstream's per-directory `install` rules (SysV init
+  script, `/usr/lib`, RCS check-ins) are no longer reached from `make install`
+  and could be removed.
 
 ## Installing system-wide (root)
 
