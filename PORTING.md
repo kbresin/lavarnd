@@ -3,6 +3,34 @@
 This is a running log of what happens when the code is built and run on a
 current system. Newest entries go at the top.
 
+## 2026-11-11 — Clean root install from a fresh clone
+
+The development (user-level) install was removed with
+`scripts/user-uninstall.sh --purge`, leaving no files, units or enable links.
+Then, from a fresh `git clone` of the GitHub repo (`24bce32`):
+
+- `make all`, as a user with the default `-Wall -Werror`: no warnings.
+  `chk_lavarnd` and the Python tests pass.
+- `make install CAMTYPE=qcpro4000 VIDEODEV=/dev/video0` as root, then
+  `systemctl enable --now lavapool.service lavarnd-trickle.service`.
+
+Result on Rocky 9 (systemd 252, SELinux enforcing):
+
+- Both services are active with no restarts. `lavapool` runs as dynamic
+  user `lavapool` with supplementary group `video` and no capabilities
+  (`CapEff` 0). `trickle` runs as `lavarnd-trickle` with only
+  `cap_sys_admin`.
+- Clients get data from `127.0.0.1:23209`. `trickle` credits 16 bytes
+  through `RNDADDENTROPY` with no errors. Its startup check would have exited
+  without the capability.
+- Installed files are owned by root, and SELinux labels `lavapool` `bin_t`.
+- `systemd-analyze security` rates the units 3.7 (`lavapool`) and 4.0
+  (`lavarnd-trickle`), both "OK".
+
+This kernel already reports a full pool (`entropy_avail` 256 of 256), as the
+newer random driver does once it's initialised, so the credit doesn't show
+there.
+
 ## 2026-11-11 — Builds with no warnings; -Werror works again
 
 `make all` with the default `CC_WARN= -Wall -Werror` now builds cleanly
