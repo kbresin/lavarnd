@@ -489,9 +489,6 @@ ${LDIR}/liblava_libc${LSUF}:
 ../lib/LavaRnd/have/cam_videodev.h:
 	cd ../lib/LavaRnd/have; $(MAKE) cam_videodev.h
 
-../lib/LavaRnd/have/ov511_cam.h:
-	cd ../lib/LavaRnd/have; $(MAKE) ov511_cam.h
-
 # perform various tests of the installed LavaRnd system
 #
 # NOTE: Most of these tests assume that LavaRnd has been installed
@@ -704,66 +701,51 @@ baseconv.o: ../lib/LavaRnd/lavaerr.h
 baseconv.o: ../lib/LavaRnd/rawio.h
 baseconv.o: baseconv.c
 camdump.o: ../lib/LavaRnd/have/cam_videodev.h
-camdump.o: ../lib/LavaRnd/have/ov511_cam.h
 camdump.o: ../lib/LavaRnd/have/pwc_cam.h
 camdump.o: ../lib/LavaRnd/lava_debug.h
 camdump.o: ../lib/LavaRnd/lavacam.h
 camdump.o: ../lib/LavaRnd/lavaerr.h
 camdump.o: ../lib/LavaRnd/lavaquality.h
-camdump.o: ../lib/LavaRnd/ov511_drvr.h
-camdump.o: ../lib/LavaRnd/ov511_state.h
 camdump.o: ../lib/LavaRnd/pwc_drvr.h
 camdump.o: ../lib/LavaRnd/pwc_state.h
 camdump.o: ../lib/LavaRnd/rawio.h
 camdump.o: camdump.c
 camdumpdir.o: ../lib/LavaRnd/have/cam_videodev.h
-camdumpdir.o: ../lib/LavaRnd/have/ov511_cam.h
 camdumpdir.o: ../lib/LavaRnd/have/pwc_cam.h
 camdumpdir.o: ../lib/LavaRnd/lava_debug.h
 camdumpdir.o: ../lib/LavaRnd/lavacam.h
 camdumpdir.o: ../lib/LavaRnd/lavaerr.h
 camdumpdir.o: ../lib/LavaRnd/lavaquality.h
-camdumpdir.o: ../lib/LavaRnd/ov511_drvr.h
-camdumpdir.o: ../lib/LavaRnd/ov511_state.h
 camdumpdir.o: ../lib/LavaRnd/pwc_drvr.h
 camdumpdir.o: ../lib/LavaRnd/pwc_state.h
 camdumpdir.o: ../lib/LavaRnd/rawio.h
 camdumpdir.o: camdumpdir.c
 camget.o: ../lib/LavaRnd/have/cam_videodev.h
-camget.o: ../lib/LavaRnd/have/ov511_cam.h
 camget.o: ../lib/LavaRnd/have/pwc_cam.h
 camget.o: ../lib/LavaRnd/lava_debug.h
 camget.o: ../lib/LavaRnd/lavacam.h
 camget.o: ../lib/LavaRnd/lavaerr.h
 camget.o: ../lib/LavaRnd/lavaquality.h
-camget.o: ../lib/LavaRnd/ov511_drvr.h
-camget.o: ../lib/LavaRnd/ov511_state.h
 camget.o: ../lib/LavaRnd/pwc_drvr.h
 camget.o: ../lib/LavaRnd/pwc_state.h
 camget.o: camget.c
 camsanity.o: ../lib/LavaRnd/cleanup.h
 camsanity.o: ../lib/LavaRnd/have/cam_videodev.h
-camsanity.o: ../lib/LavaRnd/have/ov511_cam.h
 camsanity.o: ../lib/LavaRnd/have/pwc_cam.h
 camsanity.o: ../lib/LavaRnd/lava_debug.h
 camsanity.o: ../lib/LavaRnd/lavacam.h
 camsanity.o: ../lib/LavaRnd/lavaerr.h
 camsanity.o: ../lib/LavaRnd/lavaquality.h
-camsanity.o: ../lib/LavaRnd/ov511_drvr.h
-camsanity.o: ../lib/LavaRnd/ov511_state.h
 camsanity.o: ../lib/LavaRnd/pwc_drvr.h
 camsanity.o: ../lib/LavaRnd/pwc_state.h
 camsanity.o: ../lib/LavaRnd/rawio.h
 camsanity.o: camsanity.c
 camset.o: ../lib/LavaRnd/have/cam_videodev.h
-camset.o: ../lib/LavaRnd/have/ov511_cam.h
 camset.o: ../lib/LavaRnd/have/pwc_cam.h
 camset.o: ../lib/LavaRnd/lava_debug.h
 camset.o: ../lib/LavaRnd/lavacam.h
 camset.o: ../lib/LavaRnd/lavaerr.h
 camset.o: ../lib/LavaRnd/lavaquality.h
-camset.o: ../lib/LavaRnd/ov511_drvr.h
-camset.o: ../lib/LavaRnd/ov511_state.h
 camset.o: ../lib/LavaRnd/pwc_drvr.h
 camset.o: ../lib/LavaRnd/pwc_state.h
 camset.o: camset.c
@@ -790,14 +772,11 @@ chk_lavarnd.o: ../lib/LavaRnd/sysstuff.h
 chk_lavarnd.o: chk_lavarnd.c
 imgtally.o: ../lib/LavaRnd/cleanup.h
 imgtally.o: ../lib/LavaRnd/have/cam_videodev.h
-imgtally.o: ../lib/LavaRnd/have/ov511_cam.h
 imgtally.o: ../lib/LavaRnd/have/pwc_cam.h
 imgtally.o: ../lib/LavaRnd/lava_debug.h
 imgtally.o: ../lib/LavaRnd/lavacam.h
 imgtally.o: ../lib/LavaRnd/lavaerr.h
 imgtally.o: ../lib/LavaRnd/lavaquality.h
-imgtally.o: ../lib/LavaRnd/ov511_drvr.h
-imgtally.o: ../lib/LavaRnd/ov511_state.h
 imgtally.o: ../lib/LavaRnd/pwc_drvr.h
 imgtally.o: ../lib/LavaRnd/pwc_state.h
 imgtally.o: ../lib/LavaRnd/rawio.h
@@ -805,15 +784,12 @@ imgtally.o: chi_tbl.h
 imgtally.o: imgtally.c
 lavadump.o: ../lib/LavaRnd/cleanup.h
 lavadump.o: ../lib/LavaRnd/have/cam_videodev.h
-lavadump.o: ../lib/LavaRnd/have/ov511_cam.h
 lavadump.o: ../lib/LavaRnd/have/pwc_cam.h
 lavadump.o: ../lib/LavaRnd/lava_debug.h
 lavadump.o: ../lib/LavaRnd/lavacam.h
 lavadump.o: ../lib/LavaRnd/lavaerr.h
 lavadump.o: ../lib/LavaRnd/lavaquality.h
 lavadump.o: ../lib/LavaRnd/lavarnd.h
-lavadump.o: ../lib/LavaRnd/ov511_drvr.h
-lavadump.o: ../lib/LavaRnd/ov511_state.h
 lavadump.o: ../lib/LavaRnd/pwc_drvr.h
 lavadump.o: ../lib/LavaRnd/pwc_state.h
 lavadump.o: ../lib/LavaRnd/rawio.h

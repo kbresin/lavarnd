@@ -28,7 +28,7 @@
 
 # setup
 #
-MODULES="pwcx-i386 pwc ov511"
+MODULES="pwcx-i386 pwc"
 
 # must be run as root
 #

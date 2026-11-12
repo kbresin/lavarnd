@@ -92,9 +92,9 @@ documents the Perl API and `trickle`, which this fork has removed.
   (the `~/.local` files, user units and config), then build from a fresh
   clone of the repo and install as root, to confirm it compiles and installs
   cleanly with nothing left over from development.
-- **Housekeeping.** Remove the unused `PERL=`/`POD2MAN=` Makefile variables
-  and the dead V4L1 `ov511` driver, fix the remaining upstream compiler
-  warnings, and then turn warnings back into errors.
+- **Housekeeping.** Remove the unused `PERL=`/`POD2MAN=` Makefile variables,
+  fix the remaining upstream compiler warnings, and then turn warnings back
+  into errors.
 
 ## Running it (no root needed)
 

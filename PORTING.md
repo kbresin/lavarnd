@@ -3,6 +3,16 @@
 This is a running log of what happens when the code is built and run on a
 current system. Newest entries go at the top.
 
+## 2026-11-11 — ov511 driver removed
+
+The `ov511` driver (camera type `dsbc100`, the D-Link DSB-C100) used the V4L1
+API, which the kernel removed long ago, and the kernel's own `ov511` module
+is gone too (replaced by `gspca_ov519`). It could not open a camera on any
+current system. Removed `lib/ov511_drvr.c`, its two headers, the generated
+`have/ov511_cam.h`, the `/etc/hotplug` module script `daemon/ov511`, its
+`cam_switch` entry, and its Makefile and manifest lines. An OV511 camera on
+`gspca_ov519` would need a new V4L2 driver like `uvc_drvr.c`.
+
 ## 2026-11-11 — Python client retries are spaced out
 
 After a restart, `lavapool` takes about 4.6 s (camera warm-up) before it

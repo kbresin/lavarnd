@@ -270,13 +270,6 @@ static struct camop cam_switch[] = {
      uvc_open, uvc_close,
      uvc_get_frame, uvc_msync, uvc_wait_frame},
 
-    {513, "ov511", "dsbc100", "DSB-C100", "D-Link DSB-C100 camera",
-     ov511_get, ov511_set, ov511_LavaRnd,
-     ov511_check, ov511_print,
-     ov511_usage, ov511_argv,
-     ov511_open, ov511_close,
-     ov511_get_frame, ov511_msync, ov511_wait_frame},
-
     /* MUST be end of list */
     {-1, NULL, NULL, NULL, NULL,
      NULL, NULL, NULL,

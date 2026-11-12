@@ -150,7 +150,7 @@ CSRC= fetchlava.c fnv1.c \
 	liblava_try_high.c liblava_try_med.c liblava_tryonce_any.c \
 	liblava_tryonce_high.c liblava_tryonce_med.c random.c random_libc.c \
 	rawio.c s100.c sha1.c sysstuff.c lava_debug.c camop.c \
-	pwc_drvr.c ov511_drvr.c v4l2cam.c uvc_drvr.c \
+	pwc_drvr.c v4l2cam.c uvc_drvr.c \
 	liblava_invalid.c cleanup.c palette.c
 
 HAVE_HFILE= LavaRnd/have/cam_videodev.h LavaRnd/have/endian.h \
@@ -164,7 +164,7 @@ HAVE_HFILE= LavaRnd/have/cam_videodev.h LavaRnd/have/endian.h \
 	LavaRnd/have/have_sys_time.h LavaRnd/have/have_sys_times.h \
 	LavaRnd/have/have_time.h LavaRnd/have/have_uid_t.h \
 	LavaRnd/have/have_ustat.h LavaRnd/have/have_ustat_h.h \
-	LavaRnd/have/pwc_cam.h LavaRnd/have/ov511_cam.h
+	LavaRnd/have/pwc_cam.h
 
 HAVE_SRC= LavaRnd/have/endian.c LavaRnd/have/have_getcontext.c \
 	LavaRnd/have/have_getdtablesize.c LavaRnd/have/have_gethostid.c \
@@ -184,7 +184,6 @@ HSRC= LavaRnd/cfg.h LavaRnd/fetchlava.h LavaRnd/fnv1.h \
 	LavaRnd/sha1_internal.h LavaRnd/sysstuff.h LavaRnd/lava_debug.h \
 	LavaRnd/lavacam.h \
 	LavaRnd/pwc_drvr.h LavaRnd/pwc_state.h \
-	LavaRnd/ov511_drvr.h LavaRnd/ov511_state.h \
 	LavaRnd/v4l2cam.h LavaRnd/uvc_drvr.h LavaRnd/uvc_state.h \
 	LavaRnd/cleanup.h
 
@@ -196,7 +195,7 @@ OBJS= fetchlava.o fnv1.o lavarnd.o lavasocket.o liblava_exit.o \
 	liblava_try_high.o liblava_try_med.o liblava_tryonce_any.o \
 	liblava_tryonce_high.o liblava_tryonce_med.o random.o random_libc.o \
 	rawio.o s100.o sha1.o sysstuff.o lava_debug.o camop.o \
-	pwc_drvr.o ov511_drvr.o v4l2cam.o uvc_drvr.o \
+	pwc_drvr.o v4l2cam.o uvc_drvr.o \
 	liblava_invalid.o cleanup.o palette.o
 
 COMMON_LAVA_OBS= fetchlava.o fnv1.o lavasocket.o random.o rawio.o s100.o \
@@ -398,7 +397,7 @@ liblava_s100_any${LSUF}: ${COMMON_LAVA_OBS} liblava_s100_any.o
 	@${RM} -f $@
 	@${AR} -cvsr $@ $^
 
-libLavaRnd_cam${LSUF}: camop.o palette.o pwc_drvr.o ov511_drvr.o v4l2cam.o uvc_drvr.o
+libLavaRnd_cam${LSUF}: camop.o palette.o pwc_drvr.o v4l2cam.o uvc_drvr.o
 	@echo "creating $@"
 	@${RM} -f $@
 	@${AR} -cvsr $@ $^
@@ -686,14 +685,11 @@ depend: ${HAVE_HFILE} ${HSRC} ${CSRC}
 # DO NOT DELETE THIS LINE - make depend needs it
 
 camop.o: LavaRnd/have/cam_videodev.h
-camop.o: LavaRnd/have/ov511_cam.h
 camop.o: LavaRnd/have/pwc_cam.h
 camop.o: LavaRnd/lavacam.h
 camop.o: LavaRnd/uvc_drvr.h
 camop.o: LavaRnd/uvc_state.h
 camop.o: LavaRnd/lavaerr.h
-camop.o: LavaRnd/ov511_drvr.h
-camop.o: LavaRnd/ov511_state.h
 camop.o: LavaRnd/pwc_drvr.h
 camop.o: LavaRnd/pwc_state.h
 camop.o: camop.c
@@ -785,42 +781,22 @@ liblava_tryonce_high.o: liblava_tryonce_high.c
 liblava_tryonce_med.o: LavaRnd/lava_callback.h
 liblava_tryonce_med.o: LavaRnd/lavaquality.h
 liblava_tryonce_med.o: liblava_tryonce_med.c
-ov511_drvr.o: LavaRnd/have/cam_videodev.h
-ov511_drvr.o: LavaRnd/have/have_pselect.h
-ov511_drvr.o: LavaRnd/have/ov511_cam.h
-ov511_drvr.o: LavaRnd/have/pwc_cam.h
-ov511_drvr.o: LavaRnd/lavacam.h
-ov511_drvr.o: LavaRnd/uvc_drvr.h
-ov511_drvr.o: LavaRnd/uvc_state.h
-ov511_drvr.o: LavaRnd/lavaerr.h
-ov511_drvr.o: LavaRnd/ov511_drvr.h
-ov511_drvr.o: LavaRnd/ov511_state.h
-ov511_drvr.o: LavaRnd/pwc_drvr.h
-ov511_drvr.o: LavaRnd/pwc_state.h
-ov511_drvr.o: LavaRnd/rawio.h
-ov511_drvr.o: ov511_drvr.c
 palette.o: LavaRnd/have/cam_videodev.h
-palette.o: LavaRnd/have/ov511_cam.h
 palette.o: LavaRnd/have/pwc_cam.h
 palette.o: LavaRnd/lavacam.h
 palette.o: LavaRnd/uvc_drvr.h
 palette.o: LavaRnd/uvc_state.h
 palette.o: LavaRnd/lavaerr.h
-palette.o: LavaRnd/ov511_drvr.h
-palette.o: LavaRnd/ov511_state.h
 palette.o: LavaRnd/pwc_drvr.h
 palette.o: LavaRnd/pwc_state.h
 palette.o: palette.c
 pwc_drvr.o: LavaRnd/have/cam_videodev.h
 pwc_drvr.o: LavaRnd/have/have_pselect.h
-pwc_drvr.o: LavaRnd/have/ov511_cam.h
 pwc_drvr.o: LavaRnd/have/pwc_cam.h
 pwc_drvr.o: LavaRnd/lavacam.h
 pwc_drvr.o: LavaRnd/uvc_drvr.h
 pwc_drvr.o: LavaRnd/uvc_state.h
 pwc_drvr.o: LavaRnd/lavaerr.h
-pwc_drvr.o: LavaRnd/ov511_drvr.h
-pwc_drvr.o: LavaRnd/ov511_state.h
 pwc_drvr.o: LavaRnd/pwc_drvr.h
 pwc_drvr.o: LavaRnd/pwc_state.h
 pwc_drvr.o: LavaRnd/rawio.h
@@ -828,26 +804,20 @@ pwc_drvr.o: LavaRnd/v4l2cam.h
 pwc_drvr.o: pwc_drvr.c
 v4l2cam.o: LavaRnd/have/cam_videodev.h
 v4l2cam.o: LavaRnd/have/have_pselect.h
-v4l2cam.o: LavaRnd/have/ov511_cam.h
 v4l2cam.o: LavaRnd/have/pwc_cam.h
 v4l2cam.o: LavaRnd/lavacam.h
 v4l2cam.o: LavaRnd/uvc_drvr.h
 v4l2cam.o: LavaRnd/uvc_state.h
 v4l2cam.o: LavaRnd/lavaerr.h
-v4l2cam.o: LavaRnd/ov511_drvr.h
-v4l2cam.o: LavaRnd/ov511_state.h
 v4l2cam.o: LavaRnd/pwc_drvr.h
 v4l2cam.o: LavaRnd/pwc_state.h
 v4l2cam.o: LavaRnd/rawio.h
 v4l2cam.o: LavaRnd/v4l2cam.h
 v4l2cam.o: v4l2cam.c
 uvc_drvr.o: LavaRnd/have/cam_videodev.h
-uvc_drvr.o: LavaRnd/have/ov511_cam.h
 uvc_drvr.o: LavaRnd/have/pwc_cam.h
 uvc_drvr.o: LavaRnd/lavacam.h
 uvc_drvr.o: LavaRnd/lavaerr.h
-uvc_drvr.o: LavaRnd/ov511_drvr.h
-uvc_drvr.o: LavaRnd/ov511_state.h
 uvc_drvr.o: LavaRnd/pwc_drvr.h
 uvc_drvr.o: LavaRnd/pwc_state.h
 uvc_drvr.o: LavaRnd/rawio.h

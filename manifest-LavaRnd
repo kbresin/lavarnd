@@ -19,7 +19,6 @@ daemon/lava_retry.h
 daemon/lavapool.c
 daemon/lavaurl.c
 daemon/listener.c
-daemon/ov511
 daemon/pool.c
 daemon/pool.h
 daemon/pwc
@@ -70,8 +69,6 @@ lib/LavaRnd/lavacam.h
 lib/LavaRnd/lavaerr.h
 lib/LavaRnd/lavaquality.h
 lib/LavaRnd/lavarnd.h
-lib/LavaRnd/ov511_drvr.h
-lib/LavaRnd/ov511_state.h
 lib/LavaRnd/pwc_drvr.h
 lib/LavaRnd/pwc_state.h
 lib/LavaRnd/random.h
@@ -104,7 +101,6 @@ lib/liblava_try_med.c
 lib/liblava_tryonce_any.c
 lib/liblava_tryonce_high.c
 lib/liblava_tryonce_med.c
-lib/ov511_drvr.c
 lib/palette.c
 lib/pwc_drvr.c
 lib/random.c

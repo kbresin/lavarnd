@@ -169,7 +169,7 @@ TARGETS= ${DESTSBIN_TARGETS} ${SHBIN_TARGETS} ${CFG_TARGETS}
 # optional usb module parameter control
 #
 HOTPLUG_USB_DIR= /etc/hotplug/usb
-HOTPLUG_TARGET= ov511 pwc
+HOTPLUG_TARGET= pwc
 
 # C compiler control
 #
@@ -569,12 +569,9 @@ cfg_lavapool.o: cfg_lavapool.h
 cfg_lavapool.o: dbg.h
 chan.o: ../lib/LavaRnd/fnv1.h
 chan.o: ../lib/LavaRnd/have/cam_videodev.h
-chan.o: ../lib/LavaRnd/have/ov511_cam.h
 chan.o: ../lib/LavaRnd/have/pwc_cam.h
 chan.o: ../lib/LavaRnd/lavacam.h
 chan.o: ../lib/LavaRnd/lavaerr.h
-chan.o: ../lib/LavaRnd/ov511_drvr.h
-chan.o: ../lib/LavaRnd/ov511_state.h
 chan.o: ../lib/LavaRnd/pwc_drvr.h
 chan.o: ../lib/LavaRnd/pwc_state.h
 chan.o: ../lib/LavaRnd/rawio.h
@@ -585,14 +582,11 @@ chan.o: dbg.h
 chan.o: pool.h
 chaos.o: ../lib/LavaRnd/cfg.h
 chaos.o: ../lib/LavaRnd/have/cam_videodev.h
-chaos.o: ../lib/LavaRnd/have/ov511_cam.h
 chaos.o: ../lib/LavaRnd/have/pwc_cam.h
 chaos.o: ../lib/LavaRnd/lava_debug.h
 chaos.o: ../lib/LavaRnd/lavacam.h
 chaos.o: ../lib/LavaRnd/lavaerr.h
 chaos.o: ../lib/LavaRnd/lavaquality.h
-chaos.o: ../lib/LavaRnd/ov511_drvr.h
-chaos.o: ../lib/LavaRnd/ov511_state.h
 chaos.o: ../lib/LavaRnd/pwc_drvr.h
 chaos.o: ../lib/LavaRnd/pwc_state.h
 chaos.o: ../lib/LavaRnd/rawio.h
@@ -603,12 +597,9 @@ chaos.o: dbg.h
 chaos.o: pool.h
 client.o: ../lib/LavaRnd/cfg.h
 client.o: ../lib/LavaRnd/have/cam_videodev.h
-client.o: ../lib/LavaRnd/have/ov511_cam.h
 client.o: ../lib/LavaRnd/have/pwc_cam.h
 client.o: ../lib/LavaRnd/lavacam.h
 client.o: ../lib/LavaRnd/lavaerr.h
-client.o: ../lib/LavaRnd/ov511_drvr.h
-client.o: ../lib/LavaRnd/ov511_state.h
 client.o: ../lib/LavaRnd/pwc_drvr.h
 client.o: ../lib/LavaRnd/pwc_state.h
 client.o: ../lib/LavaRnd/rawio.h
@@ -624,15 +615,12 @@ lavapool.o: ../lib/LavaRnd/cfg.h
 lavapool.o: ../lib/LavaRnd/cleanup.h
 lavapool.o: ../lib/LavaRnd/fetchlava.h
 lavapool.o: ../lib/LavaRnd/have/cam_videodev.h
-lavapool.o: ../lib/LavaRnd/have/ov511_cam.h
 lavapool.o: ../lib/LavaRnd/have/pwc_cam.h
 lavapool.o: ../lib/LavaRnd/lava_callback.h
 lavapool.o: ../lib/LavaRnd/lavacam.h
 lavapool.o: ../lib/LavaRnd/lavaerr.h
 lavapool.o: ../lib/LavaRnd/lavaquality.h
 lavapool.o: ../lib/LavaRnd/lavarnd.h
-lavapool.o: ../lib/LavaRnd/ov511_drvr.h
-lavapool.o: ../lib/LavaRnd/ov511_state.h
 lavapool.o: ../lib/LavaRnd/pwc_drvr.h
 lavapool.o: ../lib/LavaRnd/pwc_state.h
 lavapool.o: ../lib/LavaRnd/rawio.h
@@ -654,12 +642,9 @@ lavaurl.o: pool.h
 lavaurl.o: simple_url.h
 listener.o: ../lib/LavaRnd/cfg.h
 listener.o: ../lib/LavaRnd/have/cam_videodev.h
-listener.o: ../lib/LavaRnd/have/ov511_cam.h
 listener.o: ../lib/LavaRnd/have/pwc_cam.h
 listener.o: ../lib/LavaRnd/lavacam.h
 listener.o: ../lib/LavaRnd/lavaerr.h
-listener.o: ../lib/LavaRnd/ov511_drvr.h
-listener.o: ../lib/LavaRnd/ov511_state.h
 listener.o: ../lib/LavaRnd/pwc_drvr.h
 listener.o: ../lib/LavaRnd/pwc_state.h
 listener.o: ../lib/LavaRnd/rawio.h
