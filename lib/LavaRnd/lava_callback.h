@@ -34,6 +34,7 @@
 #  define __LAVARND_LAVA_CALLBACK_H__
 
 #  include <sys/types.h>
+#  include <stdint.h>
 #  include "lavaquality.h"
 
 
@@ -331,6 +332,16 @@ typedef double (*lavaback) (u_int8_t * buf, int len, int offset, int err,
  *	This is never an valid callback.  Use of this callback
  *	is undefined.
  */
+/*
+ * LAVACALL_CASE - a callback argument as an integer, for switch statements
+ *
+ * The predefined callbacks are small integers cast to a function pointer.
+ * Compare the whole pointer value: casting to int would drop the upper bits
+ * on 64-bit systems, so a real callback whose address ended in 0..12 would
+ * look like a predefined one.
+ */
+#  define LAVACALL_CASE(callback) ((intptr_t)(callback))
+
 #  define CASE_LAVACALL_INVALID (0)
 #  define LAVACALL_LAVA_INVALID ((lavaback)CASE_LAVACALL_INVALID)
 #  define CASE_LAVACALL_LAVA_EXIT (1)

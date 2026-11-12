@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <stdint.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -188,7 +189,7 @@ main(int argc, char *argv[])
 	case CASE_LAVACALL_S100_HIGH:
 	case CASE_LAVACALL_S100_MED:
 	case CASE_LAVACALL_S100_ANY:
-	    ret = process_request((lavaback)callback, len, out_fd);
+	    ret = process_request((lavaback)(intptr_t)callback, len, out_fd);
 	    if (ret < 0) {
 		fprintf(stderr, "%s: request error: %d\n", program, ret);
 		fflush(stderr);
@@ -306,19 +307,19 @@ print_callbacks(void)
 {
     fprintf(stdout, "\tcallback arg must be one of these integers:\n\n");
     fprintf(stdout, "\t%d\tLAVACALL_LAVA_EXIT (def)\n",
-	    (int)LAVACALL_LAVA_EXIT);
-    fprintf(stdout, "\t%d\tLAVACALL_LAVA_RETRY\n", (int)LAVACALL_LAVA_RETRY);
-    fprintf(stdout, "\t%d\tLAVACALL_LAVA_RETURN\n", (int)LAVACALL_LAVA_RETURN);
-    fprintf(stdout, "\t%d\tLAVACALL_TRY_HIGH\n", (int)LAVACALL_TRY_HIGH);
-    fprintf(stdout, "\t%d\tLAVACALL_TRY_MED\n", (int)LAVACALL_TRY_MED);
-    fprintf(stdout, "\t%d\tLAVACALL_TRY_ANY\n", (int)LAVACALL_TRY_ANY);
+	    CASE_LAVACALL_LAVA_EXIT);
+    fprintf(stdout, "\t%d\tLAVACALL_LAVA_RETRY\n", CASE_LAVACALL_LAVA_RETRY);
+    fprintf(stdout, "\t%d\tLAVACALL_LAVA_RETURN\n", CASE_LAVACALL_LAVA_RETURN);
+    fprintf(stdout, "\t%d\tLAVACALL_TRY_HIGH\n", CASE_LAVACALL_TRY_HIGH);
+    fprintf(stdout, "\t%d\tLAVACALL_TRY_MED\n", CASE_LAVACALL_TRY_MED);
+    fprintf(stdout, "\t%d\tLAVACALL_TRY_ANY\n", CASE_LAVACALL_TRY_ANY);
     fprintf(stdout, "\t%d\tLAVACALL_TRYONCE_HIGH\n",
-	    (int)LAVACALL_TRYONCE_HIGH);
-    fprintf(stdout, "\t%d\tLAVACALL_TRYONCE_MED\n", (int)LAVACALL_TRYONCE_MED);
-    fprintf(stdout, "\t%d\tLAVACALL_TRYONCE_ANY\n", (int)LAVACALL_TRYONCE_ANY);
-    fprintf(stdout, "\t%d\tLAVACALL_S100_HIGH\n", (int)LAVACALL_S100_HIGH);
-    fprintf(stdout, "\t%d\tLAVACALL_S100_MED\n", (int)LAVACALL_S100_MED);
-    fprintf(stdout, "\t%d\tLAVACALL_S100_ANY\n", (int)LAVACALL_S100_ANY);
+	    CASE_LAVACALL_TRYONCE_HIGH);
+    fprintf(stdout, "\t%d\tLAVACALL_TRYONCE_MED\n", CASE_LAVACALL_TRYONCE_MED);
+    fprintf(stdout, "\t%d\tLAVACALL_TRYONCE_ANY\n", CASE_LAVACALL_TRYONCE_ANY);
+    fprintf(stdout, "\t%d\tLAVACALL_S100_HIGH\n", CASE_LAVACALL_S100_HIGH);
+    fprintf(stdout, "\t%d\tLAVACALL_S100_MED\n", CASE_LAVACALL_S100_MED);
+    fprintf(stdout, "\t%d\tLAVACALL_S100_ANY\n", CASE_LAVACALL_S100_ANY);
     fflush(stdout);
     return;
 }

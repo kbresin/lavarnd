@@ -391,7 +391,7 @@ lava_maxlen(lavaback callback)
     /*
      * determine the maximum length
      */
-    switch ((int)callback) {
+    switch (LAVACALL_CASE(callback)) {
     case CASE_LAVACALL_S100_HIGH:
     case CASE_LAVACALL_S100_MED:
     case CASE_LAVACALL_S100_ANY:
@@ -415,7 +415,7 @@ preseed_s100(lavaback callback, int len)
     /*
      * quick return we do not need to reseed
      */
-    switch ((int)callback) {
+    switch (LAVACALL_CASE(callback)) {
     case CASE_LAVACALL_LAVA_EXIT:
     case CASE_LAVACALL_LAVA_RETRY:
     case CASE_LAVACALL_LAVA_RETURN:
@@ -502,7 +502,7 @@ def_lava_timeout(lavaback callback)
     /*
      * determine the initial timeout
      */
-    switch ((int)callback) {
+    switch (LAVACALL_CASE(callback)) {
     case CASE_LAVACALL_LAVA_EXIT:
 	timeout = cfg_random.exit_min_wait;
 	break;
@@ -1405,7 +1405,7 @@ raw_random(u_int8_t * buf, int len, lavaback callback, int *amt_p, int has_ret)
 	 * LAVACALL_TRYONCE_XYZ after a lavapool daemon failure.
 	 */
 	p_qual = LAVA_QUAL_LAVARND;
-	switch ((int)callback) {
+	switch (LAVACALL_CASE(callback)) {
 	case CASE_LAVACALL_S100_HIGH:
 	    status = raw_s100lava(cfg_random.lavapool,
 				  buf + offset, len - offset,
@@ -1490,7 +1490,7 @@ raw_random(u_int8_t * buf, int len, lavaback callback, int *amt_p, int has_ret)
 	 */
 	if (status <= 0) {
 	    ++retry_cnt;
-	    switch ((int)callback) {
+	    switch (LAVACALL_CASE(callback)) {
 	    case CASE_LAVACALL_LAVA_EXIT:
 		/*
 		 * exit if too many errors

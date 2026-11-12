@@ -117,7 +117,7 @@ fake_seed(void)
      * also configured, the s100_preseed_amt configuration rules
      * about when to later preload the private s100 generator apply.
      */
-    switch ((int)lava_callback) {
+    switch (LAVACALL_CASE(lava_callback)) {
     case CASE_LAVACALL_S100_ANY:
     case CASE_LAVACALL_S100_HIGH:
     case CASE_LAVACALL_S100_MED:

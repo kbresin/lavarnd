@@ -1125,7 +1125,7 @@ lava_debug_s(char *file, int line, char *func, char *fmt, int int1)
  *	callback	callback argument value to display
  */
 void
-lava_debug_v(char *file, int line, char *func, int callback)
+lava_debug_v(char *file, int line, char *func, intptr_t callback)
 {
     char *name = NULL;		/* name of callback value or NULL */
 
@@ -1184,7 +1184,7 @@ lava_debug_v(char *file, int line, char *func, int callback)
 	 */
 	if (name == NULL) {
 	    lava_debug_msg(file, line, func,
-			   "user defined callback: %08x", callback);
+			   "user defined callback: %#jx", (uintmax_t)callback);
 	} else {
 	    lava_debug_msg(file, line, func, "pre-defined callback: %s", name);
 	}

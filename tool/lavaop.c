@@ -72,7 +72,7 @@ main(int argc, char *argv[])
     switch (argc) {
     case 3:
 	lavacall = (lavaback)strtol(argv[2], NULL, 0);
-	switch ((int)lavacall) {
+	switch (LAVACALL_CASE(lavacall)) {
 	case CASE_LAVACALL_LAVA_EXIT:
 	case CASE_LAVACALL_LAVA_RETRY:
 	case CASE_LAVACALL_LAVA_RETURN:
@@ -87,8 +87,8 @@ main(int argc, char *argv[])
 	case CASE_LAVACALL_S100_ANY:
 	    break;
 	default:
-	    fprintf(stderr, "%s: unknown callback: %d\n",
-		    program, (int)lavacall);
+	    fprintf(stderr, "%s: unknown callback: %ld\n",
+		    program, (long)LAVACALL_CASE(lavacall));
 	    usage(1);		/* exit(1) */
 	    /*NOTREACHED*/
 	}
@@ -202,18 +202,18 @@ usage(int exitcode)
     fprintf(stderr, "usage: %s [-r cfg.random] length [callback]\n", program);
     fprintf(stderr, "\n\tcallback arg must be one of these integers:\n\n");
     fprintf(stderr, "\t%d\tLAVACALL_LAVA_EXIT (def)\n",
-	    (int)LAVACALL_LAVA_EXIT);
-    fprintf(stderr, "\t%d\tLAVACALL_LAVA_RETRY\n", (int)LAVACALL_LAVA_RETRY);
-    fprintf(stderr, "\t%d\tLAVACALL_LAVA_RETURN\n", (int)LAVACALL_LAVA_RETURN);
-    fprintf(stderr, "\t%d\tLAVACALL_TRY_HIGH\n", (int)LAVACALL_TRY_HIGH);
-    fprintf(stderr, "\t%d\tLAVACALL_TRY_MED\n", (int)LAVACALL_TRY_MED);
-    fprintf(stderr, "\t%d\tLAVACALL_TRY_ANY\n", (int)LAVACALL_TRY_ANY);
+	    CASE_LAVACALL_LAVA_EXIT);
+    fprintf(stderr, "\t%d\tLAVACALL_LAVA_RETRY\n", CASE_LAVACALL_LAVA_RETRY);
+    fprintf(stderr, "\t%d\tLAVACALL_LAVA_RETURN\n", CASE_LAVACALL_LAVA_RETURN);
+    fprintf(stderr, "\t%d\tLAVACALL_TRY_HIGH\n", CASE_LAVACALL_TRY_HIGH);
+    fprintf(stderr, "\t%d\tLAVACALL_TRY_MED\n", CASE_LAVACALL_TRY_MED);
+    fprintf(stderr, "\t%d\tLAVACALL_TRY_ANY\n", CASE_LAVACALL_TRY_ANY);
     fprintf(stderr, "\t%d\tLAVACALL_TRYONCE_HIGH\n",
-	    (int)LAVACALL_TRYONCE_HIGH);
-    fprintf(stderr, "\t%d\tLAVACALL_TRYONCE_MED\n", (int)LAVACALL_TRYONCE_MED);
-    fprintf(stderr, "\t%d\tLAVACALL_TRYONCE_ANY\n", (int)LAVACALL_TRYONCE_ANY);
-    fprintf(stderr, "\t%d\tLAVACALL_S100_HIGH\n", (int)LAVACALL_S100_HIGH);
-    fprintf(stderr, "\t%d\tLAVACALL_S100_MED\n", (int)LAVACALL_S100_MED);
-    fprintf(stderr, "\t%d\tLAVACALL_S100_ANY\n", (int)LAVACALL_S100_ANY);
+	    CASE_LAVACALL_TRYONCE_HIGH);
+    fprintf(stderr, "\t%d\tLAVACALL_TRYONCE_MED\n", CASE_LAVACALL_TRYONCE_MED);
+    fprintf(stderr, "\t%d\tLAVACALL_TRYONCE_ANY\n", CASE_LAVACALL_TRYONCE_ANY);
+    fprintf(stderr, "\t%d\tLAVACALL_S100_HIGH\n", CASE_LAVACALL_S100_HIGH);
+    fprintf(stderr, "\t%d\tLAVACALL_S100_MED\n", CASE_LAVACALL_S100_MED);
+    fprintf(stderr, "\t%d\tLAVACALL_S100_ANY\n", CASE_LAVACALL_S100_ANY);
     exit(exitcode);
 }

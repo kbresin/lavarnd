@@ -36,6 +36,7 @@
 #  define __LAVARND_LAVA_DEBUG_H__
 
 
+#include <stdint.h>
 #include "LavaRnd/lavaquality.h"
 
 
@@ -75,7 +76,7 @@
         lava_debug_s(__FILE__, __LINE__, func, fmt, int1)
 
 #    define LAVA_DEBUG_V(func, callback) \
-        lava_debug_v(__FILE__, __LINE__, func, ((int)callback))
+        lava_debug_v(__FILE__, __LINE__, func, LAVACALL_CASE(callback))
 
 #    define LAVA_DEBUG_Z(func, dtime) \
 	lava_debug_z(__FILE__, __LINE__, func, dtime)
@@ -132,7 +133,7 @@ extern void lava_debug_r(char *file, int line, char *func, int len);
 extern void lava_debug_s(char *file, int line, char *func,
 			 char *fmt, int int1);
 
-extern void lava_debug_v(char *file, int line, char *func, int callback);
+extern void lava_debug_v(char *file, int line, char *func, intptr_t callback);
 
 extern void lava_debug_z(char *file, int line, char *func, double dtime);
 
