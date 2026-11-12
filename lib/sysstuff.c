@@ -160,7 +160,7 @@ system_stuff(struct system_stuff *sdata, int partial_set)
      *       HASH of the way it was before.  We don't need to be exact here.
      */
     lava_sha_init(&sdata->first_hash);
-    lava_sha_update(&sdata->first_hash, (u_int8_t *) & sdata, sizeof(sdata));
+    lava_sha_update(&sdata->first_hash, (u_int8_t *) sdata, sizeof(*sdata));
     lava_sha_final2(&sdata->first_hash);
 
     /*
@@ -301,7 +301,7 @@ system_stuff(struct system_stuff *sdata, int partial_set)
     try_sha1_file("/proc/net/rt_cache_stat", &sdata->proc_net_rt_cache_stat);
     try_sha1_file("/proc/net/tcp", &sdata->proc_net_tcp);
     sdata->fnv_seq_value = fnv_seq();
-    sdata->hash_val = fnv1_hash((char *)&sdata, sizeof(sdata));
+    sdata->hash_val = fnv1_hash((u_int8_t *) sdata, sizeof(*sdata));
 #if defined(HAVE_SYS_TIME_H)
     (void)gettimeofday(&sdata->tp2, NULL);
 #endif
