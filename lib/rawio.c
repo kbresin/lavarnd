@@ -284,7 +284,11 @@ noblock_read(int fd, void *buf, size_t count, int chk_alarm)
     size_t total;	/* total read count */
     char *next;	/* where to read next */
     fd_set rd_set;	/* read select set */
+#if defined(HAVE_PSELECT)
+    struct timespec notime;	/* no time to wait */
+#else /* HAVE_PSELECT */
     struct timeval notime;	/* no time to wait */
+#endif /* HAVE_PSELECT */
 
     /*
      * firewall
@@ -319,7 +323,11 @@ noblock_read(int fd, void *buf, size_t count, int chk_alarm)
 	FD_ZERO(&rd_set);
 	FD_SET(fd, &rd_set);
 	notime.tv_sec = 0;
+#if defined(HAVE_PSELECT)
+	notime.tv_nsec = 0;
+#else /* HAVE_PSELECT */
 	notime.tv_usec = 0;
+#endif /* HAVE_PSELECT */
 
 	/*
 	 * check for blocking
@@ -419,7 +427,11 @@ nilblock_read(int fd, void *buf, size_t count, int chk_alarm)
     size_t total;	/* total read count */
     char *next;	/* where to read next */
     fd_set rd_set;	/* read select set */
-    struct timeval niltime;	/* no time to wait */
+#if defined(HAVE_PSELECT)
+    struct timespec niltime;	/* tiny time to wait */
+#else /* HAVE_PSELECT */
+    struct timeval niltime;	/* tiny time to wait */
+#endif /* HAVE_PSELECT */
 
     /*
      * firewall
@@ -454,7 +466,11 @@ nilblock_read(int fd, void *buf, size_t count, int chk_alarm)
 	FD_ZERO(&rd_set);
 	FD_SET(fd, &rd_set);
 	niltime.tv_sec = 0;
+#if defined(HAVE_PSELECT)
+	niltime.tv_nsec = double_to_tv_nsec(LAVA_TINY_TIME);
+#else /* HAVE_PSELECT */
 	niltime.tv_usec = double_to_tv_usec(LAVA_TINY_TIME);
+#endif /* HAVE_PSELECT */
 
 	/*
 	 * check for blocking
@@ -703,7 +719,11 @@ noblock_write(int fd, void *buf, size_t count, int chk_alarm)
     size_t total;	/* total write count */
     char *next;	/* where to write next */
     fd_set wr_set;	/* write select set */
+#if defined(HAVE_PSELECT)
+    struct timespec notime;	/* no time to wait */
+#else /* HAVE_PSELECT */
     struct timeval notime;	/* no time to wait */
+#endif /* HAVE_PSELECT */
 
     /*
      * firewall
@@ -738,7 +758,11 @@ noblock_write(int fd, void *buf, size_t count, int chk_alarm)
 	FD_ZERO(&wr_set);
 	FD_SET(fd, &wr_set);
 	notime.tv_sec = 0;
+#if defined(HAVE_PSELECT)
+	notime.tv_nsec = 0;
+#else /* HAVE_PSELECT */
 	notime.tv_usec = 0;
+#endif /* HAVE_PSELECT */
 
 	/*
 	 * check for blocking
@@ -834,7 +858,11 @@ nilblock_write(int fd, void *buf, size_t count, int chk_alarm)
     size_t total;	/* total write count */
     char *next;	/* where to write next */
     fd_set wr_set;	/* write select set */
+#if defined(HAVE_PSELECT)
+    struct timespec niltime;	/* tiny time to wait */
+#else /* HAVE_PSELECT */
     struct timeval niltime;	/* tiny time to wait */
+#endif /* HAVE_PSELECT */
 
     /*
      * firewall
@@ -869,7 +897,11 @@ nilblock_write(int fd, void *buf, size_t count, int chk_alarm)
 	FD_ZERO(&wr_set);
 	FD_SET(fd, &wr_set);
 	niltime.tv_sec = 0;
+#if defined(HAVE_PSELECT)
+	niltime.tv_nsec = double_to_tv_nsec(LAVA_TINY_TIME);
+#else /* HAVE_PSELECT */
 	niltime.tv_usec = double_to_tv_usec(LAVA_TINY_TIME);
+#endif /* HAVE_PSELECT */
 
 	/*
 	 * check for blocking
