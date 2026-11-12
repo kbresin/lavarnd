@@ -926,14 +926,11 @@ lavacam_uncom_fract(u_int8_t * frame, int len, int top_x, int *p_half_x)
  *         frames are exactly the same.  A value of 1.0 means that one
  *         frame is the bit-wise complement of the other frame (all bits
  *         are different).
- *
- * NOTE: Due to counting bits, the maximum length that is actually
- *       examined is 2^32 bits == 2^29 octets.
  */
 double
 lavacam_bitdiff_fract(u_int8_t * frame1, u_int8_t * frame2, int len)
 {
-    unsigned long one_bits;	/* 1 bit difference */
+    u_int64_t one_bits;		/* 1 bit difference */
     double bitdiff_fract;	/* fraction of different bits */
     int i;
 
@@ -948,12 +945,6 @@ lavacam_bitdiff_fract(u_int8_t * frame1, u_int8_t * frame2, int len)
 	/* missing frame(s) means no bits are different */
 	return 0.0;
     }
-    /* -3 is because there are 8 (2 to the 3rd power) bits per octet */
-    if (len >= (1L << ((sizeof(one_bits) * BITS_PER_OCTET) - 3))) {
-	/* bit length overflows signed int, reduce length to avoid overflow */
-	len = (1L << ((sizeof(one_bits) * BITS_PER_OCTET) - 3)) - 1;
-    }
-
     /*
      * count bit difference
      */
@@ -965,7 +956,7 @@ lavacam_bitdiff_fract(u_int8_t * frame1, u_int8_t * frame2, int len)
     /*
      * return the bit difference fraction
      */
-    bitdiff_fract = (double)one_bits / (double)(len * BITS_PER_OCTET);
+    bitdiff_fract = (double)one_bits / ((double)len * BITS_PER_OCTET);
     return bitdiff_fract;
 }
 

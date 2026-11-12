@@ -58,6 +58,7 @@ main(int argc, char *argv[])
 #endif /* LAVA_DEBUG */
     unsigned short int xsubi[3] = { 19937, 21701, 23209 };	/* fake seed arg */
     unsigned short int param[7] = { 0, 1, 2, 3, 4, 5, 6 };	/* fake seed arg */
+    static char state[128];	/* fake state arg */
     u_int8_t i8;	/* 8 bit unsigned int */
     u_int16_t i16;	/* 16 bit unsigned int */
     u_int32_t i32;	/* 32 bit unsigned int */
@@ -209,10 +210,10 @@ main(int argc, char *argv[])
     srandom(23209);
     errno_chk(17, "srandom");
     printf("about to call initstate()\n");
-    (void)initstate(23209, NULL, 128);
+    (void)initstate(23209, state, sizeof(state));
     errno_chk(18, "initstate");
     printf("about to call setstate()\n");
-    (void)setstate(NULL);
+    (void)setstate(state);
     errno_chk(19, "setstate");
     printf("about to call srand48()\n");
     srand48(23209);

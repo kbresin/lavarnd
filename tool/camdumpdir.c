@@ -219,7 +219,7 @@ main(int argc, char *argv[])
 		(siz.use_read ? "read" : "mmap"), siz.chaos_len);
     }
     for (filenum = 0; filenum < filecnt; ++filenum) {
-	char filename[sizeof("img0123456789.yuv")];	/* filename to create */
+	char filename[sizeof("img-9223372036854775808.yuv")];	/* filename to create */
 	int fd;	/* open file to write */
 
 	/*

@@ -255,7 +255,7 @@ lava_unix_connect(char *port)
      */
     memset(&conaddr, 0, sizeof(conaddr));
     conaddr.sun_family = AF_UNIX;
-    strncpy(conaddr.sun_path, port, sizeof(conaddr.sun_path));
+    strncpy(conaddr.sun_path, port, sizeof(conaddr.sun_path) - 1);
     addrlen = sizeof(conaddr);
 
     /*
@@ -500,7 +500,7 @@ lava_unix_listen(char *port)
      */
     memset(&lisaddr, 0, sizeof(lisaddr));
     lisaddr.sun_family = AF_UNIX;
-    strncpy(lisaddr.sun_path, port, sizeof(lisaddr.sun_path));
+    strncpy(lisaddr.sun_path, port, sizeof(lisaddr.sun_path) - 1);
     addrlen = sizeof(lisaddr);
 
     /*

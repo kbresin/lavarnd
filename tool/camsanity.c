@@ -273,7 +273,7 @@ main(int argc, char *argv[])
     }
     f_tx[0] = NULL;
     for (i = 1; i <= top_x; ++i) {
-	char filename[sizeof("top_x.256")];	/* filename to create */
+	char filename[sizeof("top_x.-2147483648")];	/* filename to create */
 
 	sprintf(filename, "top_x.%03d", i);
 	errno = 0;

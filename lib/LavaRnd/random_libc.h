@@ -72,19 +72,19 @@ extern long int random(void);
 extern double drand48(void);
 
 #  undef erand48
-extern double erand48(unsigned short int xsubi[]);
+extern double erand48(unsigned short int xsubi[3]);
 
 #  undef lrand48
 extern long int lrand48(void);
 
 #  undef nrand48
-extern long int nrand48(unsigned short int xsubi[]);
+extern long int nrand48(unsigned short int xsubi[3]);
 
 #  undef mrand48
 extern long int mrand48(void);
 
 #  undef jrand48
-extern long int jrand48(unsigned short int xsubi[]);
+extern long int jrand48(unsigned short int xsubi[3]);
 
 #  undef srand
 extern void srand(unsigned int seed);
@@ -102,10 +102,10 @@ extern char *setstate(char *state);
 extern void srand48(long int seedval);
 
 #  undef seed48
-extern unsigned short int *seed48(unsigned short int seed16v[]);
+extern unsigned short int *seed48(unsigned short int seed16v[3]);
 
 #  undef lcong48
-extern void lcong48(unsigned short int param[]);
+extern void lcong48(unsigned short int param[7]);
 
 
 #endif /* __LAVARND_RANDOM_LIBC_H__ */
