@@ -247,7 +247,7 @@ main(int argc, char *argv[])
 	    if (flag.v_flag >= 1) {
 		fprintf(stderr,
 			"ignoring frame number: %lld insane count: %lld: %s\n",
-			siz.frame_num, siz.insane_cnt, lava_err_name(i));
+			(long long)siz.frame_num, (long long)siz.insane_cnt, lava_err_name(i));
 	    }
 
 	    /* ignore this loop */
@@ -336,8 +336,8 @@ main(int argc, char *argv[])
 	now = time(NULL);
 	fprintf(stderr, "camera close time: %s", ctime(&now));
 	fprintf(stderr, "duration: ~%ld second(s)\n", now - siz.open_time);
-	fprintf(stderr, "\ntotal frame count: %lld\n", siz.frame_num);
-	fprintf(stderr, "insane frame count: %lld\n", siz.insane_cnt);
+	fprintf(stderr, "\ntotal frame count: %lld\n", (long long)siz.frame_num);
+	fprintf(stderr, "insane frame count: %lld\n", (long long)siz.insane_cnt);
 	if (siz.frame_num > 0) {
 	    fprintf(stderr, "sanity: %8.5f%%\n",
 		    100 * (1.0 - ((double)siz.insane_cnt/siz.frame_num)));

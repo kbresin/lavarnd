@@ -1585,8 +1585,8 @@ pwc_print(FILE * stream, int cam_fd, union lavacam *u_cam_p,
     fprintf(stream, "\ncamera use since this process opened the camera:\n");
     /* ctime returns a newline, so the next printf should not end in one */
     fprintf(stream, "\tcamera open time: %s", ctime(&siz->open_time));
-    fprintf(stream, "\tframe count: %lld\n", siz->frame_num);
-    fprintf(stream, "\tinsane frame count: %lld\n", siz->insane_cnt);
+    fprintf(stream, "\tframe count: %lld\n", (long long)siz->frame_num);
+    fprintf(stream, "\tinsane frame count: %lld\n", (long long)siz->insane_cnt);
 
     /*
      * output opsizes

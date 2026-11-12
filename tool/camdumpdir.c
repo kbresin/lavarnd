@@ -228,7 +228,7 @@ main(int argc, char *argv[])
 	i = lavacam_wait_frame(type, cam_fd, -1.0);
 	if (i < 0) {
 	    fprintf(stderr, "%s: error while waiting for frame %lld: %d\n",
-		    program, siz.frame_num, i);
+		    program, (long long)siz.frame_num, i);
 	    exit(9);
 	}
 
@@ -238,7 +238,7 @@ main(int argc, char *argv[])
 	i = lavacam_get_frame(type, cam_fd, &siz);
 	if (i < 0) {
 	    fprintf(stderr, "%s: failed to get frame %lld: %d\n",
-		    program, siz.frame_num, i);
+		    program, (long long)siz.frame_num, i);
 	    exit(10);
 	}
 
@@ -250,7 +250,7 @@ main(int argc, char *argv[])
 	    if (flag.v_flag >= 1) {
 		fprintf(stderr,
 			"ignoring frame number: %lld insane count: %lld\n",
-			siz.frame_num, siz.insane_cnt);
+			(long long)siz.frame_num, (long long)siz.insane_cnt);
 	    }
 
 	    /* ignore this loop */
@@ -281,12 +281,12 @@ main(int argc, char *argv[])
 
 		if (i < 0) {
 		    fprintf(stderr, "%s: cannot write frame %lld: %d\n",
-			    program, siz.frame_num, i);
+			    program, (long long)siz.frame_num, i);
 		    exit(11);
 		} else if (i == 0) {
 		    if (flag.v_flag >= 1) {
 			fprintf(stderr,
-				"EOF on write frame: %lld\n", siz.frame_num);
+				"EOF on write frame: %lld\n", (long long)siz.frame_num);
 		    }
 		    exit(0);
 		} else if (flag.v_flag >= 3) {
@@ -302,7 +302,7 @@ main(int argc, char *argv[])
 	i = lavacam_msync(type, cam_fd, &n_cam, &siz);
 	if (i < 0) {
 	    fprintf(stderr, "%s: msync release error frame %lld: %d\n",
-		    program, siz.frame_num, i);
+		    program, (long long)siz.frame_num, i);
 	    exit(12);
 	}
 
@@ -337,8 +337,8 @@ main(int argc, char *argv[])
 	now = time(NULL);
 	printf("camera close time: %s", ctime(&now));
 	printf("duration: ~%ld second(s)\n", now - siz.open_time);
-	printf("\ntotal frame count: %lld\n", siz.frame_num);
-	printf("insane frame count: %lld\n", siz.insane_cnt);
+	printf("\ntotal frame count: %lld\n", (long long)siz.frame_num);
+	printf("insane frame count: %lld\n", (long long)siz.insane_cnt);
 	if (siz.frame_num > 0) {
 	    printf("sanity: %8.5f%%\n",
 		    100 * (1.0 - ((double)siz.insane_cnt/siz.frame_num)));

@@ -138,7 +138,8 @@ main(int argc, char *argv[])
     printf("random32: 0x%08x (%d)\n", i32, i32);
     i64 = random64();
     errno_chk(7, "random64");
-    printf("random64: 0x%016llx (%lld)\n", i64, i64);
+    printf("random64: 0x%016llx (%llu)\n",
+	   (unsigned long long)i64, (unsigned long long)i64);
 
     /*
      * ask for a chunk of random data
@@ -195,7 +196,7 @@ main(int argc, char *argv[])
     for (i = 0; i < DIE_ROLLS / 2 - 2; ++i) {
 	i64 = random_lval(LARGE_DIE);
 	errno_chk(15, "random_lval");
-	printf(" %012lld", i64);
+	printf(" %012lld", (long long)i64);
     }
     fputc('\n', stdout);
     fputc('\n', stdout);

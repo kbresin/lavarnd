@@ -383,7 +383,7 @@ main(int argc, char *argv[])
 	i = lavacam_wait_frame(type, cam_fd, -1.0);
 	if (i < 0) {
 	    fprintf(stderr, "%s: error while waiting for frame %lld: %d\n",
-		    program, siz.frame_num, i);
+		    program, (long long)siz.frame_num, i);
 	    exit(20);
 	}
 
@@ -393,7 +393,7 @@ main(int argc, char *argv[])
 	i = lavacam_get_frame(type, cam_fd, &siz);
 	if (i < 0) {
 	    fprintf(stderr, "%s: failed to get frame %lld: %d\n",
-		    program, siz.frame_num, i);
+		    program, (long long)siz.frame_num, i);
 	    exit(21);
 	}
 
@@ -495,7 +495,7 @@ main(int argc, char *argv[])
 	i = lavacam_msync(type, cam_fd, &n_cam, &siz);
 	if (i < 0) {
 	    fprintf(stderr, "%s: msync release error frame %lld: %d\n",
-		    program, siz.frame_num, i);
+		    program, (long long)siz.frame_num, i);
 	    exit(22);
 	}
 
