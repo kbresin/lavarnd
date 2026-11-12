@@ -307,25 +307,26 @@ clobber:
 	@${RM} -f dist.sed install.sed
 	@echo "=+=+=+= ending $@ rule =+=+=+="
 
-install: all
-	@echo "=+=+=+= starting $@ rule =+=+=+="
-	@for i in ${SUBDIRS}; do \
-	    if [ ! -d "$$i" ]; then \
-	    	echo "$$i is not a sub-directory" 1>&2; \
-		exit 1; \
-	    fi; \
-	done
-	@for i in ${PRESUBDIRS}; do \
-	    echo "=+=+= starting $@ $$i subdir =+=+="; \
-	    echo "	(cd $$i; $(MAKE) $@)"; \
-	    (cd $$i; $(MAKE) $@ ${PASSDOWN}); \
-	    if [ $$? -ne 0 ]; then \
-	        echo "  $(MAKE) $@ for $$i failed" 1>&2; \
-		exit 2; \
-	    fi; \
-	    echo "=-_-= ending $@ $$i subdir =-_-="; \
-	done
-	@echo "=+=+=+= ending $@ rule =+=+=+="
+# install - install lavapool and trickle as systemd system services (as root)
+#
+# Run `make all` first as an ordinary user; install does not compile.  The
+# camera type is needed the first time only, to write /etc/LavaRnd/cfg.lavapool:
+#
+#	make install CAMTYPE=qcpro4000 [VIDEODEV=/dev/video0]
+#
+# See scripts/system-install.sh.  Upstream's per-directory install rules
+# (SysV init script, /usr/lib, RCS check-ins) are no longer used.
+#
+CAMTYPE=
+VIDEODEV=
+install:
+	@sh scripts/system-install.sh "${CAMTYPE}" "${VIDEODEV}"
+
+# uninstall - undo `make install`; PURGE=1 also removes /etc/LavaRnd
+#
+PURGE=
+uninstall:
+	@sh scripts/system-uninstall.sh $(if ${PURGE},--purge)
 
 # ccflags - output C compiler flag values
 #

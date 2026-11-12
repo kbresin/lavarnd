@@ -94,7 +94,36 @@ documents the Perl API and `trickle`, which this fork has removed.
   cleanly with nothing left over from development.
 - **Housekeeping.** Remove the unused `PERL=`/`POD2MAN=` Makefile variables.
 
-## Running it (no root needed)
+## Installing system-wide (root)
+
+Build as an ordinary user, then install as root:
+
+    make all
+    make install CAMTYPE=qcpro4000 VIDEODEV=/dev/video0    # as root
+    systemctl enable --now lavapool.service lavarnd-trickle.service
+
+`make install` doesn't compile anything. It runs `scripts/system-install.sh`,
+which installs:
+
+- `lavapool` in `/usr/local/sbin`
+- the LavaRnd libraries and the Python package under `/usr/local/lib/lavarnd`
+- a config file, `/etc/LavaRnd/cfg.lavapool`. An existing one is kept, so
+  `CAMTYPE` is only needed the first time.
+- the `lavapool.service` and `lavarnd-trickle.service` units in
+  `/etc/systemd/system`
+
+Both services run as a throwaway unprivileged user (systemd `DynamicUser`)
+with a read-only view of the system. `lavapool` gets the `video` group to
+open the camera. `lavarnd-trickle` gets only `CAP_SYS_ADMIN`, which it needs to
+add 16 bytes to `/dev/random` every 5 minutes with `RNDADDENTROPY`, crediting
+8 bits of entropy per byte (`trickle -e 8`). Edit the unit to credit less.
+Logs: `journalctl -u lavapool -u lavarnd-trickle`.
+
+`make uninstall` removes it all except `/etc/LavaRnd`; `make uninstall
+PURGE=1` removes that too. Don't run the system and user installs at the same
+time, because both need the camera and port 23209.
+
+## Running it as a user (no root needed)
 
 Build, then install `lavapool` as a systemd user service for your account:
 
@@ -119,7 +148,7 @@ config file to `~/.config/LavaRnd/cfg.lavapool`. The daemon listens on
 `trickle` writes 16 bytes from `lavapool` into `/dev/urandom` every 5 minutes,
 as upstream's did. Run as a normal user, this mixes the data into the kernel's
 pool without raising the kernel's entropy estimate. Crediting entropy needs
-root and is planned for after the development stage.
+`CAP_SYS_ADMIN`; the system install does that.
 
 Both services log to the journal:
 `journalctl _SYSTEMD_USER_UNIT=lavapool.service` (warnings such as frames
@@ -135,8 +164,8 @@ To use it from Python, see [`python/README.md`](python/README.md):
 
     cd python && PYTHONPATH=src python3 -m lavarnd --hex 32
 
-The upstream root install (`make install`, SysV init
-scripts) is still there but hasn't been ported.
+`scripts/user-uninstall.sh` removes the user install (add `--purge` to also
+remove `~/.config/LavaRnd`).
 
 ## Authorship
 

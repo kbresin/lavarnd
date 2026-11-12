@@ -1,0 +1,38 @@
+[Unit]
+Description=LavaRnd trickle: add lavapool data to the kernel random pool
+Documentation=https://github.com/kbresin/lavarnd
+Wants=lavapool.service
+After=lavapool.service
+
+[Service]
+Type=simple
+# A throwaway unprivileged user holding only CAP_SYS_ADMIN, which the
+# RNDADDENTROPY ioctl requires.
+DynamicUser=yes
+AmbientCapabilities=CAP_SYS_ADMIN
+CapabilityBoundingSet=CAP_SYS_ADMIN
+Environment=PYTHONPATH=@PYDIR@
+# 16 octets every 300 seconds (upstream's rate), each credited at 8 bits of
+# entropy per octet.  Lower -e to credit less; drop it to mix in without
+# crediting, which needs no capability.
+ExecStart=@PYTHON@ -s -m lavarnd.trickle -e 8 16 300 /dev/random
+Restart=on-failure
+RestartSec=10
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target
