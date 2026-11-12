@@ -39,9 +39,7 @@ CAT= cat
 CC= cc
 CHMOD= chmod
 CHOWN= chown
-CI= ci
 CMP= cmp
-CO= co
 CP= cp
 CTAGS= ctags
 DATE= date
@@ -49,7 +47,6 @@ DIRNAME= dirname
 EGREP= egrep
 FGREP= fgrep
 FIND= find
-GROUPADD= groupadd
 HEAD= head
 INSTALL= install
 LDD= ldd
@@ -64,7 +61,6 @@ SED= sed
 SORT= sort
 TAIL= tail
 TAR= tar
-USERADD= useradd
 XARGS= xargs
 
 # How to compile C programs
@@ -87,38 +83,18 @@ CC_OPT= -O3
 #CC_DBG= -g ${CC_OPT}
 CC_DBG= -g3 ${CC_OPT}
 
-# where to install
+# DESTLIB	run-time library search path (rpath) built into programs
 #
-# DESTBIN	Locally installed program bin directory
-# DESTSBIN	Locally installed program etc directory and daemons
-# DESTLIB	Locally installed local libraries
-# DESTINC	Locally installed *.h header files
-# DOCDIR	System wide documentation directory
-# TOOLDIR	Where LavaRnd tools are installed (usually DESTBIN/lavatool)
-# RC_DIR	Where the rc startup scripts are installed
-# CFGDIR	LavaRnd configuration directory
-#
-DESTBIN= /usr/bin
-DESTSBIN= /usr/sbin
 DESTLIB=/usr/lib
-DESTINC=/usr/include/LavaRnd
-DOCDIR= /usr/share/doc
-TOOLDIR= ${DESTBIN}/lavatool
-RC_DIR= /etc/rc.d/init.d
-CFGDIR=/etc/LavaRnd
 
 # user and host information
 #
 # LAVARND_VIDEODEV	special device file for the LavaRnd webcam
 # LAVARND_CAMTYPE	camera type (use a name given by: tool/camset list all)
-# LAVARND_USER		username under which lavapool other lavarnd daemons run
-# LAVARND_GROUP		group under which lavapool other lavarnd daemons run
 # LAVAPOOL_CHROOT	lavapool chroots under this directory at startup
 #
 LAVARND_VIDEODEV=/dev/video0
 LAVARND_CAMTYPE= pwc730
-LAVARND_USER=lava
-LAVARND_GROUP=lava
 LAVAPOOL_CHROOT=/
 
 # distribution
@@ -248,9 +224,7 @@ PASSDOWN= \
     CC='${CC}' \
     CHMOD='${CHMOD}' \
     CHOWN='${CHOWN}' \
-    CI='${CI}' \
     CMP='${CMP}' \
-    CO='${CO}' \
     CP='${CP}' \
     CTAGS='${CTAGS}' \
     DATE='${DATE}' \
@@ -258,7 +232,6 @@ PASSDOWN= \
     EGREP='${EGREP}' \
     FGREP='${FGREP}' \
     FIND='${FIND}' \
-    GROUPADD='${GROUPADD}' \
     HEAD='${HEAD}' \
     INSTALL='${INSTALL}' \
     LDD='${LDD}' \
@@ -273,7 +246,6 @@ PASSDOWN= \
     SORT='${SORT}' \
     TAIL='${TAIL}' \
     TAR='${TAR}' \
-    USERADD='${USERADD}' \
     XARGS='${XARGS}' \
     LAVA_DEBUG='${LAVA_DEBUG}' \
     DMALLOC_CC='${DMALLOC_CC}' \
@@ -281,17 +253,8 @@ PASSDOWN= \
     CC_WARN='${CC_WARN}' \
     CC_OPT='${CC_OPT}' \
     CC_DBG='${CC_DBG}' \
-    DESTBIN='${DESTBIN}' \
-    DESTSBIN='${DESTSBIN}' \
     DESTLIB='${DESTLIB}' \
-    DESTINC='${DESTINC}' \
-    DOCDIR='${DOCDIR}' \
-    TOOLDIR='${TOOLDIR}' \
-    RC_DIR='${RC_DIR}' \
-    CFGDIR='${CFGDIR}' \
     LAVARND_VIDEODEV='${LAVARND_VIDEODEV}' \
-    LAVARND_USER='${LAVARND_USER}' \
-    LAVARND_GROUP='${LAVARND_GROUP}' \
     LAVAPOOL_CHROOT='${LAVAPOOL_CHROOT}' \
     DIST='${DIST}' \
     DISTDIR='${DISTDIR}'
@@ -304,7 +267,7 @@ FORCE=
 #=-=-= start of Makefile rules =-=-=#
 #####################################
 
-all: ${TARGETS} install.sed dist.sed COPYING COPYING-LGPL
+all: ${TARGETS} dist.sed COPYING COPYING-LGPL
 	@echo "=+= starting $@ rule for lib/shared =+="
 	@cd shared; $(MAKE) $@ ${PASSDOWN}
 	@echo "=+= ending $@ rule for lib/shared =+="
@@ -407,7 +370,7 @@ clean:
 	@echo "=+= starting $@ rule =+="
 	${RM} -f ${OBJS}
 	${RM} -rf dist skel
-	${RM} -f install.sed dist.sed
+	${RM} -f dist.sed
 	@echo "= starting $@ rule for lib/shared ="
 	@cd shared; $(MAKE) $@ ${PASSDOWN}
 	@echo "= ending $@ rule for lib/shared ="
@@ -425,107 +388,6 @@ clobber: clean
 	@echo "= starting $@ rule for lib/LavaRnd/have ="
 	@cd LavaRnd/have; $(MAKE) $@ ${PASSDOWN}
 	@echo "= ending $@ rule for lib/LavaRnd/have ="
-	@echo "=+= ending $@ rule =+="
-
-install: all
-	@echo "=+= starting $@ rule =+="
-	-@if [ ! -d "${DESTLIB}" -o -n "${FORCE}" ]; then \
-	    echo "${MKDIR} -p ${DESTLIB}"; \
-	    ${MKDIR} -p "${DESTLIB}"; \
-	    echo "${CHMOD} 0755 ${DESTLIB}"; \
-	    ${CHMOD} 0755 "${DESTLIB}"; \
-	    echo "${CHOWN} root.root ${DESTLIB}"; \
-	    ${CHOWN} root.root "${DESTLIB}"; \
-	fi
-	-@for i in ${LIBFILES} ""; do \
-	    if [ "$$i" = "" ]; then break; fi; \
-	    if ! ${CMP} -s "$$i" "${DESTLIB}/$$i"; then \
-		${RM} -f ${DESTLIB}/$$i.new; \
-		${CP} $$i ${DESTLIB}/$$i.new; \
-		${CHMOD} 0444 ${DESTLIB}/$$i.new; \
-		${MV} -f ${DESTLIB}/$$i.new ${DESTLIB}/$$i; \
-		echo "$$i installed into ${DESTLIB}/$$i"; \
-	    fi; \
-	done
-	-@if [ ! -d "${DESTINC}" -o -n "${FORCE}" ]; then \
-	    echo "${MKDIR} -p ${DESTINC}"; \
-	    ${MKDIR} -p "${DESTINC}"; \
-	    echo "${CHMOD} 0755 ${DESTINC}"; \
-	    ${CHMOD} 0755 "${DESTINC}"; \
-	    echo "${CHOWN} root.root ${DESTINC}"; \
-	    ${CHOWN} root.root "${DESTINC}"; \
-	fi
-	-@if [ ! -d "${DESTINC}/LavaRnd" -o -n "${FORCE}" ]; then \
-	    echo "${MKDIR} -p ${DESTINC}/LavaRnd"; \
-	    ${MKDIR} -p "${DESTINC}/LavaRnd"; \
-	    echo "${CHMOD} 0755 ${DESTINC}/LavaRnd"; \
-	    ${CHMOD} 0755 "${DESTINC}/LavaRnd"; \
-	    echo "${CHOWN} root.root ${DESTINC}/LavaRnd"; \
-	    ${CHOWN} root.root "${DESTINC}/LavaRnd"; \
-	fi
-	-@for i in ${HSRC} ""; do \
-	    if [ "$$i" = "" ]; then break; fi; \
-	    if ! ${CMP} -s "$$i" "${DESTINC}/$$i"; then \
-		${RM} -f ${DESTINC}/$$i.new; \
-		${CP} $$i ${DESTINC}/$$i.new; \
-		${CHMOD} 0444 ${DESTINC}/$$i.new; \
-		${MV} -f ${DESTINC}/$$i.new ${DESTINC}/$$i; \
-		echo "$$i installed into ${DESTINC}/$$i"; \
-	    fi; \
-	done
-	-@if [ ! -d "${DESTINC}/LavaRnd/have" -o -n "${FORCE}" ]; then \
-	    echo "${MKDIR} -p ${DESTINC}/LavaRnd/have"; \
-	    ${MKDIR} -p "${DESTINC}/LavaRnd/have"; \
-	    echo "${CHMOD} 0755 ${DESTINC}/LavaRnd/have"; \
-	    ${CHMOD} 0755 "${DESTINC}/LavaRnd/have"; \
-	    echo "${CHOWN} root.root ${DESTINC}/LavaRnd/have"; \
-	    ${CHOWN} root.root "${DESTINC}/LavaRnd/have"; \
-	fi
-	-@for i in ${HAVE_HFILE} ""; do \
-	    if [ "$$i" = "" ]; then break; fi; \
-	    if ! ${CMP} -s "$$i" "${DESTINC}/$$i"; then \
-		${RM} -f ${DESTINC}/$$i.new; \
-		${CP} $$i ${DESTINC}/$$i.new; \
-		${CHMOD} 0444 ${DESTINC}/$$i.new; \
-		${MV} -f ${DESTINC}/$$i.new ${DESTINC}/$$i; \
-		echo "$$i installed into ${DESTINC}/$$i"; \
-	    fi; \
-	done
-	-@if [ ! -d "${CFGDIR}" -o -n "${FORCE}" ]; then \
-	    echo "${MKDIR} -p ${CFGDIR}"; \
-	    ${MKDIR} -p "${CFGDIR}"; \
-	    echo "${CHMOD} 0755 ${CFGDIR}"; \
-	    ${CHMOD} 0755 "${CFGDIR}"; \
-	    echo "${CHOWN} root.root ${CFGDIR}"; \
-	    ${CHOWN} root.root "${CFGDIR}"; \
-	fi
-	-@for i in ${CFG_TARGETS}; do \
-	    if ! ${CMP} -s "$$i" "${CFGDIR}/$$i"; then \
-		if [ -f "${CFGDIR}/$$i" ]; then \
-		    ${RM} -f ${CFGDIR}/$$i.new; \
-		    ${CP} $$i ${CFGDIR}/$$i.new; \
-		    ${CHMOD} 0444 ${CFGDIR}/$$i.new; \
-		    echo "config file ${CFGDIR}/$$i exists"; \
-		    echo "placed new version into ${CFGDIR}/$$i.new"; \
-		else \
-		    ${RM} -f ${CFGDIR}/$$i.new; \
-		    if [ -f "${CFGDIR}/RCS/$$i,v" ]; then \
-			echo "${CO} -l ${CFGDIR}/$$i"; \
-			${CO} -l ${CFGDIR}/$$i; \
-		    fi; \
-		    ${CP} $$i ${CFGDIR}/$$i.new; \
-		    ${MV} -f ${CFGDIR}/$$i.new ${CFGDIR}/$$i; \
-		    if [ -f "${CFGDIR}/RCS/$$i,v" ]; then \
-			echo "${CI} -u -m'make install' ${CFGDIR}/$$i"; \
-			${CI} -u -m'make install' ${CFGDIR}/$$i; \
-		    fi; \
-		    echo "$$i installed into ${CFGDIR}/$$i"; \
-		fi; \
-	    fi; \
-	done
-	@echo "= starting $@ rule for lib/shared ="
-	@cd shared; $(MAKE) $@ ${PASSDOWN}
-	@echo "= starting $@ rule for lib/shared ="
 	@echo "=+= ending $@ rule =+="
 
 # ccflags - output C compiler flag values
@@ -548,23 +410,6 @@ ccflags:
 	@echo "${BASESUBDIST} LDFLAGS= ${LDFLAGS}"
 	@echo "${BASESUBDIST} LSUF= ${LSUF}"
 	@echo "${BASESUBDIST} LDIR= ${LDIR}"
-
-# How to modify things as they are installed on the local system
-#
-# Modify scripts and source, prior to compiling or installing,
-# according to this Makefile's varablies.
-#
-install.sed: Makefile
-	@echo building $@
-	@(echo 's:^LAVARND_VIDEODEV=.*:LAVARND_VIDEODEV=${LAVARND_VIDEODEV}:'; \
-	  echo 's:^LAVARND_USER=.*:LAVARND_USER=${LAVARND_USER}:'; \
-	  echo 's:^LAVARND_GROUP=.*:LAVARND_GROUP=${LAVARND_GROUP}:'; \
-	  echo 's:^LAVAPOOL_CHROOT=.*:LAVAPOOL_CHROOT=${LAVAPOOL_CHROOT}:'; \
-	  echo 's:^DESTINC=.*:DESTINC=${DESTINC}:'; \
-	  echo 's:^DESTLIB=.*:DESTLIB=${DESTLIB}:'; \
-	  echo 's:^CFGDIR=.*:CFGDIR=${CFGDIR}:'; \
-	) > $@
-	@echo $@ built
 
 # How to modify things as they are distributed for source code release
 #

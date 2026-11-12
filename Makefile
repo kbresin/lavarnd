@@ -40,9 +40,7 @@ CAT= cat
 CC= cc
 CHMOD= chmod
 CHOWN= chown
-CI= ci
 CMP= cmp
-CO= co
 CP= cp
 CTAGS= ctags
 DATE= date
@@ -50,7 +48,6 @@ DIRNAME= dirname
 EGREP= egrep
 FGREP= fgrep
 FIND= find
-GROUPADD= groupadd
 HEAD= head
 INSTALL= install
 LDD= ldd
@@ -65,7 +62,6 @@ SED= sed
 SORT= sort
 TAIL= tail
 TAR= tar
-USERADD= useradd
 XARGS= xargs
 
 # How to compile C programs - partial list
@@ -94,38 +90,18 @@ CC_OPT= -O3
 #CC_DBG= -g ${CC_OPT}
 CC_DBG= -g3 ${CC_OPT}
 
-# where to install
+# DESTLIB	run-time library search path (rpath) built into programs
 #
-# DESTBIN	Locally installed program bin directory
-# DESTSBIN	Locally installed program etc directory and daemons
-# DESTLIB	Locally installed local libraries
-# DESTINC	Locally installed *.h header files
-# DOCDIR	System wide documentation directory
-# TOOLDIR	Where LavaRnd tools are installed (usually DESTBIN/lavatool)
-# RC_DIR	Where the rc startup scripts are installed
-# CFGDIR	LavaRnd configuration directory
-#
-DESTBIN= /usr/bin
-DESTSBIN= /usr/sbin
 DESTLIB= /usr/lib
-DESTINC= /usr/include
-DOCDIR= /usr/share/doc
-TOOLDIR= ${DESTBIN}/lavatool
-RC_DIR= /etc/rc.d/init.d
-CFGDIR= /etc/LavaRnd
 
 # user and host information
 #
 # LAVARND_VIDEODEV	special device file for the LavaRnd webcam
 # LAVARND_CAMTYPE	camera type (use a name given by: tool/camset list all)
-# LAVARND_USER		username under which lavapool other lavarnd daemons run
-# LAVARND_GROUP		group under which lavapool other lavarnd daemons run
 # LAVAPOOL_CHROOT	lavapool chroots under this directory at startup
 #
 LAVARND_VIDEODEV=/dev/video0
 LAVARND_CAMTYPE= pwc730
-LAVARND_USER=lava
-LAVARND_GROUP=lava
 LAVAPOOL_CHROOT=/
 
 # distribution
@@ -179,9 +155,7 @@ PASSDOWN= \
     CC='${CC}' \
     CHMOD='${CHMOD}' \
     CHOWN='${CHOWN}' \
-    CI='${CI}' \
     CMP='${CMP}' \
-    CO='${CO}' \
     CP='${CP}' \
     CTAGS='${CTAGS}' \
     DATE='${DATE}' \
@@ -189,7 +163,6 @@ PASSDOWN= \
     EGREP='${EGREP}' \
     FGREP='${FGREP}' \
     FIND='${FIND}' \
-    GROUPADD='${GROUPADD}' \
     HEAD='${HEAD}' \
     INSTALL='${INSTALL}' \
     LDD='${LDD}' \
@@ -204,7 +177,6 @@ PASSDOWN= \
     SORT='${SORT}' \
     TAIL='${TAIL}' \
     TAR='${TAR}' \
-    USERADD='${USERADD}' \
     XARGS='${XARGS}' \
     LAVA_DEBUG='${LAVA_DEBUG}' \
     DMALLOC_CC='${DMALLOC_CC}' \
@@ -212,18 +184,9 @@ PASSDOWN= \
     CC_WARN='${CC_WARN}' \
     CC_OPT='${CC_OPT}' \
     CC_DBG='${CC_DBG}' \
-    DESTBIN='${DESTBIN}' \
-    DESTSBIN='${DESTSBIN}' \
     DESTLIB='${DESTLIB}' \
-    DESTINC='${DESTINC}' \
-    DOCDIR='${DOCDIR}' \
-    TOOLDIR='${TOOLDIR}' \
-    RC_DIR='${RC_DIR}' \
-    CFGDIR='${CFGDIR}' \
     LAVARND_VIDEODEV='${LAVARND_VIDEODEV}' \
     LAVARND_CAMTYPE='${LAVARND_CAMTYPE}' \
-    LAVARND_USER='${LAVARND_USER}' \
-    LAVARND_GROUP='${LAVARND_GROUP}' \
     LAVAPOOL_CHROOT='${LAVAPOOL_CHROOT}' \
     DIST='${DIST}' \
     DISTDIR='${DISTDIR}'
@@ -247,7 +210,7 @@ FORCE=
 
 # default rules
 #
-all: install.sed dist.sed README-first COPYING COPYING-LGPL
+all: dist.sed README-first COPYING COPYING-LGPL
 	@echo "=+=+=+= starting $@ rule =+=+=+="
 	@for i in ${SUBDIRS}; do \
 	    if [ ! -d "$$i" ]; then \
@@ -283,7 +246,7 @@ clean:
 	    (cd $$i; $(MAKE) $@ ${PASSDOWN}); \
 	    echo "=-_-= ending $$i subdir =-_-="; \
 	done
-	@${RM} -f dist.sed install.sed
+	@${RM} -f dist.sed
 	@echo "=+=+=+= ending $@ rule =+=+=+="
 
 clobber:
@@ -300,7 +263,7 @@ clobber:
 	    (cd $$i; $(MAKE) $@ ${PASSDOWN}); \
 	    echo "=-_-= ending $$i subdir =-_-="; \
 	done
-	@${RM} -f dist.sed install.sed
+	@${RM} -f dist.sed
 	@echo "=+=+=+= ending $@ rule =+=+=+="
 
 # install - install lavapool and trickle as systemd system services (as root)
@@ -342,27 +305,6 @@ ccflags:
 	    echo "=+=+= starting $$i subdir =+=+="; \
 	    echo "	(cd $$i; $(MAKE) $@)"; \
 	    (cd $$i; $(MAKE) $@); \
-	    echo "=-_-= ending $$i subdir =-_-="; \
-	done
-	@echo "=+=+=+= ending $@ rule =+=+=+="
-
-# How to modify things as they are installed on the local system
-#
-# Modify scripts and source, prior to compiling or installing,
-# according to this Makefile's varablies.
-#
-install.sed: Makefile
-	@echo "=+=+=+= starting $@ rule =+=+=+="
-	@for i in ${SUBDIRS}; do \
-	    if [ ! -d "$$i" ]; then \
-	    	echo "$$i is not a sub-directory" 1>&2; \
-		exit 1; \
-	    fi; \
-	done
-	-@for i in ${SUBDIRS}; do \
-	    echo "=+=+= starting $$i subdir =+=+="; \
-	    echo "	(cd $$i; $(MAKE) $@)"; \
-	    (cd $$i; $(MAKE) $@ ${PASSDOWN}); \
 	    echo "=-_-= ending $$i subdir =-_-="; \
 	done
 	@echo "=+=+=+= ending $@ rule =+=+=+="

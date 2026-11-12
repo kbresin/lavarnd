@@ -38,9 +38,7 @@ CAT= cat
 CC= cc
 CHMOD= chmod
 CHOWN= chown
-CI= ci
 CMP= cmp
-CO= co
 CP= cp
 CTAGS= ctags
 DATE= date
@@ -48,7 +46,6 @@ DIRNAME= dirname
 EGREP= egrep
 FGREP= fgrep
 FIND= find
-GROUPADD= groupadd
 HEAD= head
 INSTALL= install
 LDD= ldd
@@ -63,7 +60,6 @@ SED= sed
 SORT= sort
 TAIL= tail
 TAR= tar
-USERADD= useradd
 XARGS= xargs
 
 # compile flags
@@ -86,38 +82,18 @@ CC_OPT= -O3
 #CC_DBG= -g ${CC_OPT}
 CC_DBG= -g3 ${CC_OPT}
 
-# where to install
+# DESTLIB	run-time library search path (rpath) built into programs
 #
-# DESTBIN	Locally installed program bin directory
-# DESTSBIN	Locally installed program etc directory and daemons
-# DESTLIB	Locally installed local libraries
-# DESTINC	Locally installed *.h header files
-# DOCDIR	System wide documentation directory
-# TOOLDIR	Where LavaRnd tools are installed (usually DESTBIN/lavatool)
-# RC_DIR	Where the rc startup scripts are installed
-# CFGDIR	LavaRnd configuration directory
-#
-DESTBIN= /usr/bin
-DESTSBIN= /usr/sbin
 DESTLIB= /usr/lib
-DESTINC= /usr/include
-DOCDIR= /usr/share/doc
-TOOLDIR= ${DESTBIN}/lavatool
-RC_DIR= /etc/rc.d/init.d
-CFGDIR= /etc/LavaRnd
 
 # user and host information
 #
 # LAVARND_VIDEODEV	special device file for the LavaRnd webcam
 # LAVARND_CAMTYPE	camera type (use a name given by: tool/camset list all)
-# LAVARND_USER		username under which lavapool other lavarnd daemons run
-# LAVARND_GROUP		group under which lavapool other lavarnd daemons run
 # LAVAPOOL_CHROOT	lavapool chroots under this directory at startup
 #
 LAVARND_VIDEODEV= /dev/video0
 LAVARND_CAMTYPE= pwc730
-LAVARND_USER=lava
-LAVARND_GROUP=lava
 LAVAPOOL_CHROOT=/
 
 # distribution
@@ -140,7 +116,6 @@ TARBALL= doc.tar.gz
 
 # Where to install documentation files
 #
-DOCDEST= ${DOCDIR}/LavaRnd
 
 # what to build
 #
@@ -164,69 +139,15 @@ tags: ${BUILT_SRC} Makefile
 	@#echo nothing to tag
 
 clean:
-	${RM} -f dist.sed install.sed
+	${RM} -f dist.sed
 
 clobber:
-	${RM} -f dist.sed install.sed
-
-install: all ../README-first install.sed
-	@if [ ! -d "${DOCDIR}" -o -n "${FORCE}" ]; then \
-	    echo "${MKDIR} -p ${DOCDIR}"; \
-	    ${MKDIR} -p "${DOCDIR}"; \
-	    echo "${CHMOD} 0755 ${DOCDIR}"; \
-	    ${CHMOD} 0755 "${DOCDIR}"; \
-	    echo "${CHOWN} root.root ${DOCDIR}"; \
-	    ${CHOWN} root.root "${DOCDIR}"; \
-	fi
-	@if [ ! -d "${DOCDEST}" -o -n "${FORCE}" ]; then \
-	    echo "${MKDIR} -p ${DOCDEST}"; \
-	    ${MKDIR} -p "${DOCDEST}"; \
-	    echo "${CHMOD} 0755 ${DOCDEST}"; \
-	    ${CHMOD} 0755 "${DOCDEST}"; \
-	    echo "${CHOWN} root.root ${DOCDEST}"; \
-	    ${CHOWN} root.root "${DOCDEST}"; \
-	fi
-	-@for i in ${TARGETS}; do \
-	    ${RM} -f "${DOCDEST}/$$i.new"; \
-	    ${SED} -f install.sed "$$i" > "${DOCDEST}/$$i.new"; \
-	    if ! ${CMP} -s "${DOCDEST}/$$i" "${DOCDEST}/$$i.new"; then \
-		${CHMOD} 0444 "${DOCDEST}/$$i.new"; \
-		${MV} -f "${DOCDEST}/$$i.new" "${DOCDEST}/$$i"; \
-		echo "installed ${DOCDEST}/$$i"; \
-	    else \
-		${RM} -f "${DOCDEST}/$$i.new"; \
-	    fi; \
-	done
-	@${RM} -f ${DOCDEST}/README-first.new
-	@${SED} -f install.sed ../README-first > ${DOCDEST}/README-first.new
-	@if ! ${CMP} -s ${DOCDEST}/README-first \
-		       ${DOCDEST}/README-first.new; then \
-	    ${CHMOD} 0444 ${DOCDEST}/README-first.new; \
-	    ${MV} -f ${DOCDEST}/README-first.new ${DOCDEST}/README-first; \
-	    echo "installed ${DOCDEST}/README-first"; \
-	else \
-	    ${RM} -f ${DOCDEST}/README-first.new; \
-	fi
+	${RM} -f dist.sed
 
 # ccflags - output C compiler flag values
 #
 ccflags:
 	@# no flags
-
-# How to modify things as they are installed on the local system
-#
-# Modify scripts and source, prior to compiling or installing,
-# according to this Makefile's varablies.
-#
-install.sed: Makefile ../version
-	@echo building $@
-	@VERSION="`../version`"; \
-	 (echo 's:^LAVARND_USER=.*:LAVARND_USER=${LAVARND_USER}:'; \
-	  echo 's:^LAVARND_GROUP=.*:LAVARND_GROUP=${LAVARND_GROUP}:'; \
-	  echo 's:^LAVAPOOL_CHROOT=.*:LAVAPOOL_CHROOT=${LAVAPOOL_CHROOT}:'; \
-	  echo 's:0.1.3:'$$VERSION':g'; \
-	) > $@
-	@echo $@ built
 
 # How to modify things as they are distributed for source code release
 #

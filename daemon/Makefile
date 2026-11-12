@@ -38,9 +38,7 @@ CAT= cat
 CC= cc
 CHMOD= chmod
 CHOWN= chown
-CI= ci
 CMP= cmp
-CO= co
 CP= cp
 CTAGS= ctags
 DATE= date
@@ -48,7 +46,6 @@ DIRNAME= dirname
 EGREP= egrep
 FGREP= fgrep
 FIND= find
-GROUPADD= groupadd
 HEAD= head
 INSTALL= install
 LDD= ldd
@@ -63,7 +60,6 @@ SED= sed
 SORT= sort
 TAIL= tail
 TAR= tar
-USERADD= useradd
 XARGS= xargs
 
 # How to compile C programs
@@ -86,38 +82,18 @@ CC_OPT= -O3
 #CC_DBG= -g ${CC_OPT}
 CC_DBG= -g3 ${CC_OPT}
 
-# where to install
+# DESTLIB	run-time library search path (rpath) built into programs
 #
-# DESTBIN	Locally installed program bin directory
-# DESTSBIN	Locally installed program etc directory and daemons
-# DESTLIB	Locally installed local libraries
-# DESTINC	Locally installed *.h header files
-# DOCDIR	System wide documentation directory
-# TOOLDIR	Where LavaRnd tools are installed (usually DESTBIN/lavatool)
-# RC_DIR	Where the rc startup scripts are installed
-# CFGDIR	LavaRnd configuration directory
-#
-DESTBIN=/usr/bin
-DESTSBIN=/usr/sbin
 DESTLIB= /usr/lib
-DESTINC= /usr/include
-DOCDIR= /usr/share/doc
-TOOLDIR= ${DESTBIN}/lavatool
-RC_DIR= /etc/rc.d/init.d
-CFGDIR= /etc/LavaRnd
 
 # user and host information
 #
 # LAVARND_VIDEODEV	special device file for the LavaRnd webcam
 # LAVARND_CAMTYPE	camera type (use a name given by: tool/camset list all)
-# LAVARND_USER		username under which lavapool other lavarnd daemons run
-# LAVARND_GROUP		group under which lavapool other lavarnd daemons run
 # LAVAPOOL_CHROOT	lavapool chroots under this directory at startup
 #
 LAVARND_VIDEODEV=/dev/video0
 LAVARND_CAMTYPE= pwc730
-LAVARND_USER=lava
-LAVARND_GROUP=lava
 LAVAPOOL_CHROOT=/
 
 # distribution
@@ -154,9 +130,8 @@ LIB_BUILD_HSRC= ${LDIR}/have_getppid.h ${LDIR}/have_getprid.h \
 	${LDIR}/have_sys_times.h ${LDIR}/have_time.h \
 	${LDIR}/have_uid_t.h ${LDIR}/have_urandom.h ${LDIR}/have_ustat.h \
 	${LDIR}/have_ustat_h.h
-RC_SRC= LavaRnd.rc
 #
-SRC= ${HSRC} ${CSRC} ${RC_SRC} ${SHSRC}
+SRC= ${HSRC} ${CSRC} ${SHSRC}
 
 # what to build or have
 #
@@ -166,8 +141,6 @@ TARGETS= ${DESTSBIN_TARGETS} ${SHBIN_TARGETS} ${CFG_TARGETS}
 
 # optional usb module parameter control
 #
-HOTPLUG_USB_DIR= /etc/hotplug/usb
-HOTPLUG_TARGET= pwc
 
 # C compiler control
 #
@@ -201,7 +174,7 @@ FORCE=
 #=-=-= start of Makefile rules =-=-=#
 #####################################
 
-all: ${TARGETS} install.sed dist.sed COPYING COPYING-LGPL
+all: ${TARGETS} dist.sed COPYING COPYING-LGPL
 
 lavapool: ${LAVAPOOL_OBJS} ${LDIR}/libLavaRnd_util${LSUF} \
 	${LDIR}/libLavaRnd_cam${LSUF} ${LDIR}/libLavaRnd_raw${LSUF}
@@ -236,7 +209,7 @@ ${LIB_BUILD_HSRC}:
 clean:
 	${RM} -rf dist skel tags
 	${RM} -f ${OBJS}
-	${RM} -f install.sed dist.sed
+	${RM} -f dist.sed
 	${RM} -f *.tmp
 
 clobber: clean
@@ -245,158 +218,6 @@ clobber: clean
 tags: ${CSRC} ${HSRC}
 	${RM} -f tags
 	${CTAGS} ${CSRC} ${HSRC}
-
-# We install with care to ensure that the files are never in a partial
-# or missing state.
-#
-install: all acct_setup COPYING COPYING-LGPL
-	-@if [ ! -d "${DESTSBIN}" -o -n "${FORCE}" ]; then \
-	    echo "${MKDIR} -p ${DESTSBIN}"; \
-	    ${MKDIR} -p "${DESTSBIN}"; \
-	    echo "${CHMOD} 0775 ${DESTSBIN}"; \
-	    ${CHMOD} 0775 "${DESTSBIN}"; \
-	fi
-	-@for i in ${DESTSBIN_TARGETS}; do \
-	    if ! ${CMP} -s "$$i" "${DESTSBIN}/$$i"; then \
-		${RM} -f "${DESTSBIN}/$$i.new"; \
-		${CP} "$$i" "${DESTSBIN}/$$i.new"; \
-		${CHMOD} 0555 "${DESTSBIN}/$$i.new"; \
-		${MV} -f "${DESTSBIN}/$$i.new" "${DESTSBIN}/$$i"; \
-		echo "$$i installed into ${DESTSBIN}/$$i"; \
-	    fi; \
-	done
-	-@if [ ! -d "${CFGDIR}" -o -n "${FORCE}" ]; then \
-	    echo "${MKDIR} -p ${CFGDIR}"; \
-	    ${MKDIR} -p "${CFGDIR}"; \
-	    echo "${CHMOD} 0775 ${CFGDIR}"; \
-	    ${CHMOD} 0775 "${CFGDIR}"; \
-	fi
-	-@for i in ${CFG_TARGETS}; do \
-	    ${RM} -f "$$i.tmp"; \
-	    ${SED} -f install.sed < "$$i" > "$$i.tmp"; \
-	    if ! ${CMP} -s "$$i.tmp" "${CFGDIR}/$$i"; then \
-		if [ -f "${CFGDIR}/$$i" ]; then \
-		    ${RM} -f "${CFGDIR}/$$i.new"; \
-		    ${CP} "$$i.tmp" "${CFGDIR}/$$i.new"; \
-		    ${CHMOD} 0444 "${CFGDIR}/$$i.new"; \
-		    echo "config file ${CFGDIR}/$$i exists"; \
-		    echo "placed new version into ${CFGDIR}/$$i.new"; \
-		else \
-		    ${RM} -f "${CFGDIR}/$$i.new"; \
-		    if [ -f "${CFGDIR}/RCS/$$i,v" ]; then \
-			echo "${CO} -l ${CFGDIR}/$$i"; \
-			${CO} -l "${CFGDIR}/$$i"; \
-		    fi; \
-		    ${CP} "$$i.tmp" "${CFGDIR}/$$i.new"; \
-		    ${CHMOD} 0444 "${CFGDIR}/$$i.new"; \
-		    ${MV} -f "${CFGDIR}/$$i.new" "${CFGDIR}/$$i"; \
-		    if [ -f "${CFGDIR}/RCS/$$i,v" ]; then \
-			echo "ci -u -m'make install' ${CFGDIR}/$$i"; \
-			ci -u -m'make install' ${CFGDIR}/$$i; \
-		    fi; \
-		    echo "$$i installed into ${CFGDIR}/$$i"; \
-		fi; \
-	    fi; \
-	    ${RM} -f "$$i.tmp"; \
-	done
-	-@for i in COPYING COPYING-LGPL; do \
-	    if ! ${CMP} -s "$$i" "${CFGDIR}/$$i"; then \
-		${RM} -f "${CFGDIR}/$$i.new"; \
-		${CP} "$$i" "${CFGDIR}/$$i.new"; \
-		${CHMOD} 0444 "${CFGDIR}/$$i.new"; \
-		${MV} -f "${CFGDIR}/$$i.new" "${CFGDIR}/$$i"; \
-		echo "$$i installed into ${CFGDIR}/$$i"; \
-	    fi; \
-	done
-	-@if [ ! -d "${RC_DIR}" -o -n "${FORCE}" ]; then \
-	    echo "${MKDIR} -p ${RC_DIR}"; \
-	    ${MKDIR} -p "${RC_DIR}"; \
-	    echo "${CHMOD} 0775 ${RC_DIR}"; \
-	    ${CHMOD} 0775 "${RC_DIR}"; \
-	fi
-	-@for i in ${RC_SRC}; do \
-	    RC="`${BASENAME} $$i .rc`"; \
-	    ${RM} -f "$$i.tmp"; \
-	    ${SED} -f install.sed < "$$i" > "$$i.tmp"; \
-	    if ! ${CMP} -s "$$i.tmp" "${RC_DIR}/$$RC"; then \
-		${RM} -f "${RC_DIR}/$$RC.new"; \
-		${CP} "$$i.tmp" "${RC_DIR}/$$RC.new"; \
-		${CHMOD} 0555 "${RC_DIR}/$$RC.new"; \
-		if [ -f "${RC_DIR}/RCS/$$RC,v" ]; then \
-		    echo "${CO} -l ${RC_DIR}/$$RC"; \
-		    ${CO} -l "${RC_DIR}/$$RC"; \
-		fi; \
-		${MV} -f "${RC_DIR}/$$RC.new" "${RC_DIR}/$$RC"; \
-		if [ -f "${RC_DIR}/RCS/$$RC,v" ]; then \
-		    echo "${CI} -u -m'make install' ${RC_DIR}/$$RC"; \
-		    ${CI} -u -m'make install' "${RC_DIR}/$$RC"; \
-		fi; \
-		echo "installed ${RC_DIR}/$$RC"; \
-	    fi; \
-	    ${RM} -f "$$i.tmp"; \
-	done
-
-# usb_setup
-#
-# Install the /etc/hotplub/usb files for optimal (and sometimes critical)
-# module parameters
-#
-usb_setup: ${HOTPLUG_TARGET} install.sed
-	-@if [ ! -d "${HOTPLUG_USB_DIR}" -o -n "${FORCE}" ]; then \
-	    echo "${MKDIR} -p ${HOTPLUG_USB_DIR}"; \
-	    ${MKDIR} -p "${HOTPLUG_USB_DIR}"; \
-	    echo "${CHMOD} 0755 ${HOTPLUG_USB_DIR}"; \
-	    ${CHMOD} 0775 "${HOTPLUG_USB_DIR}"; \
-	fi
-	-@for i in ${HOTPLUG_TARGET}; do \
-	    ${RM} -f "$$i.tmp"; \
-	    ${SED} -f install.sed < "$$i" > "$$i.tmp"; \
-	    if ! ${CMP} -s "$$i.tmp" "${HOTPLUG_USB_DIR}/$$i"; then \
-		if [ -f "${HOTPLUG_USB_DIR}/$$i" ]; then \
-		    ${RM} -f "${HOTPLUG_USB_DIR}/$$i.new"; \
-		    ${CP} "$$i.tmp" "${HOTPLUG_USB_DIR}/$$i.new"; \
-		    ${CHMOD} 0555 "${HOTPLUG_USB_DIR}/$$i.new"; \
-		    ${MV} -f "${HOTPLUG_USB_DIR}/$$i" \
-		    	     "${HOTPLUG_USB_DIR}/$$i.old"; \
-		    echo "moved ${HOTPLUG_USB_DIR}/$$i out of the way"; \
-		    ${MV} -f "${HOTPLUG_USB_DIR}/$$i.new" \
-		    	     "${HOTPLUG_USB_DIR}/$$i"; \
-		    echo "placed new version into ${HOTPLUG_USB_DIR}/$$i"; \
-		else \
-		    ${RM} -f "${HOTPLUG_USB_DIR}/$$i.new"; \
-		    ${CP} "$$i.tmp" "${HOTPLUG_USB_DIR}/$$i.new"; \
-		    ${CHMOD} 0555 "${HOTPLUG_USB_DIR}/$$i.new"; \
-		    ${MV} -f "${HOTPLUG_USB_DIR}/$$i.new" \
-		    	     "${HOTPLUG_USB_DIR}/$$i"; \
-		    echo "$$i installed into ${HOTPLUG_USB_DIR}/$$i"; \
-		fi; \
-	    fi; \
-	    ${RM} -f "$$i.tmp"; \
-	done
-
-# acct_setup - ensure that the system as ${LAVARND_USER} and ${LAVARND_GROUP}
-#
-acct_setup:
-	@if ! ${EGREP} '^${LAVARND_GROUP}:' /etc/group >/dev/null 2>&1; then \
-	    echo adding group ${LAVARND_GROUP} to /etc/group; \
-	    echo "${GROUPADD} ${LAVARND_GROUP}"; \
-	    ${GROUPADD} ${LAVARND_GROUP}; \
-	fi
-	@if ! ${EGREP} '^${LAVARND_GROUP}:' /etc/group >/dev/null 2>&1; then \
-	    echo unable to add ${LAVARND_GROUP} to /etc/group; \
-	    exit 1; \
-	fi
-	@if ! ${EGREP} '^${LAVARND_USER}:' /etc/passwd >/dev/null 2>&1; then \
-	    echo adding user ${LAVARND_USER} to /etc/passwd; \
-	    echo "${USERADD} -c 'LavaRnd random numbers' -g ${LAVARND_GROUP} \
-		-d ${CFGDIR} -M -s /sbin/nologin ${LAVARND_USER}"; \
-	    ${USERADD} -c 'LavaRnd random numbers' -g ${LAVARND_GROUP} \
-	        -d ${CFGDIR} -M -s /sbin/nologin ${LAVARND_USER}; \
-	fi
-	@if ! ${EGREP} '^${LAVARND_USER}:' /etc/passwd >/dev/null 2>&1; then \
-	    echo unable to add ${LAVARND_USER} to /etc/passwd; \
-	    exit 2; \
-	fi
 
 # ccflags - output C compiler flag values
 #
@@ -418,28 +239,6 @@ ccflags:
 	@echo "${BASESUBDIST} LDFLAGS= ${LDFLAGS}"
 	@echo "${BASESUBDIST} LSUF= ${LSUF}"
 	@echo "${BASESUBDIST} LDIR= ${LDIR}"
-
-# How to modify things as they are installed on the local system
-#
-# Modify scripts and source, prior to compiling or installing,
-# according to this Makefile's varablies.
-#
-install.sed: Makefile
-	@echo building $@
-	@${RM} -f $@
-	@(echo 's:^LAVAPOOL=.*:LAVAPOOL=${DESTSBIN}/lavapool:'; \
-	  echo 's:^RANDOM_CFG=.*:RANDOM_CFG=${CFGDIR}/cfg.random:'; \
-	  echo 's:^LAVAPOOL_CFG=.*:LAVAPOOL_CFG=${CFGDIR}/cfg.lavapool:'; \
-	  echo 's:^LAVARND_VIDEODEV=.*:LAVARND_VIDEODEV=${LAVARND_VIDEODEV}:'; \
-	  echo 's:^LAVARND_USER=.*:LAVARND_USER=${LAVARND_USER}:'; \
-	  echo 's:^LAVARND_GROUP=.*:LAVARND_GROUP=${LAVARND_GROUP}:'; \
-	  echo 's:^LAVAPOOL_CHROOT=.*:LAVAPOOL_CHROOT=${LAVAPOOL_CHROOT}:'; \
-	  echo 's:^DESTBIN=.*:DESTBIN=${DESTBIN}:'; \
-	  echo 's:^DESTSBIN=.*:DESTSBIN=${DESTSBIN}:'; \
-	  echo 's:INSERT_VIDEODEV_HERE:${LAVARND_VIDEODEV}:'; \
-	  echo 's:INSERT_CAMTYPE_HERE:${LAVARND_CAMTYPE}:'; \
-	) > $@
-	@echo $@ built
 
 # How to modify things as they are distributed for source code release
 #
@@ -467,7 +266,7 @@ dist.sed: Makefile
 
 # what and how we make source available via the web
 #
-dist: clobber dist.sed ${HOTPLUG_TARGET} COPYING COPYING-LGPL
+dist: clobber dist.sed COPYING COPYING-LGPL
 	@echo "=+= starting $@ for ${BASESUBDIST} =+=+="
 	@echo form ${DIST} tree with dist.sed modified files for ${BASESUBDIST}
 	${RM} -rf ${DIST}
@@ -480,7 +279,7 @@ dist: clobber dist.sed ${HOTPLUG_TARGET} COPYING COPYING-LGPL
 	    echo "${CHMOD} 0644 ${DIST}/${SUBDIST}/$$i"; \
 	    ${CHMOD} 0644 ${DIST}/${SUBDIST}/$$i; \
 	done
-	-@for i in ${RC_SRC} ${HOTPLUG_TARGET} ${SHSRC}; do \
+	-@for i in ${SHSRC}; do \
 	    echo "${SED} -f dist.sed < $$i > ${DIST}/${SUBDIST}/$$i"; \
 	    ${SED} -f dist.sed < "$$i" > "${DIST}/${SUBDIST}/$$i"; \
 	    echo "${CHMOD} 0755 ${DIST}/${SUBDIST}/$$i"; \

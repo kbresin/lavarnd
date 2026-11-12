@@ -35,10 +35,8 @@ BASENAME= basename
 CC= cc
 CHMOD= chmod
 CHOWN= chown
-CI= ci
 CMP = cmp
 CMP= cmp
-CO= co
 CP= cp
 CTAGS= ctags
 DATE= date
@@ -46,7 +44,6 @@ DIRNAME= dirname
 EGREP= egrep
 FGREP= fgrep
 FIND= find
-GROUPADD= groupadd
 HEAD= head
 INSTALL= install
 LDD= ldd
@@ -61,7 +58,6 @@ SED= sed
 SORT= sort
 TAIL= tail
 TAR= tar
-USERADD= useradd
 XARGS= xargs
 
 # How to compile C programs
@@ -84,38 +80,18 @@ CC_OPT= -O3
 #CC_DBG= -g ${CC_OPT}
 CC_DBG= -g3 ${CC_OPT}
 
-# where to install
+# DESTLIB	run-time library search path (rpath) built into programs
 #
-# DESTBIN	Locally installed program bin directory
-# DESTSBIN	Locally installed program etc directory and daemons
-# DESTLIB	Locally installed local libraries
-# DESTINC	Locally installed *.h header files
-# DOCDIR	System wide documentation directory
-# TOOLDIR	Where LavaRnd tools are installed (usually DESTBIN/lavatool)
-# RC_DIR	Where the rc startup scripts are installed
-# CFGDIR	LavaRnd configuration directory
-#
-DESTBIN= /usr/bin
-DESTSBIN= /usr/sbin
 DESTLIB=/usr/lib
-DESTINC=/usr/include/LavaRnd
-DOCDIR= /usr/share/doc
-TOOLDIR= ${DESTBIN}/lavatool
-RC_DIR= /etc/rc.d/init.d
-CFGDIR=/etc/LavaRnd
 
 # user and host information
 #
 # LAVARND_VIDEODEV	special device file for the LavaRnd webcam
 # LAVARND_CAMTYPE	camera type (use a name given by: tool/camget list all)
-# LAVARND_USER		username under which lavapool other lavarnd daemons run
-# LAVARND_GROUP		group under which lavapool other lavarnd daemons run
 # LAVAPOOL_CHROOT	lavapool chroots under this directory at startup
 #
 LAVARND_VIDEODEV=/dev/video0
 LAVARND_CAMTYPE= pwc730
-LAVARND_USER=lava
-LAVARND_GROUP=lava
 LAVAPOOL_CHROOT=/
 
 # distribution
@@ -615,42 +591,6 @@ clean:
 
 clobber: clean
 	rm -f ${HAVE_PROG} tags dist skel
-
-install: all
-	-@if [ ! -d "${DESTINC}" -o -n "${FORCE}" ]; then \
-	    echo "${MKDIR} -p ${DESTINC}"; \
-	    ${MKDIR} -p "${DESTINC}"; \
-	    echo "${CHMOD} 0755 ${DESTINC}"; \
-	    ${CHMOD} 0755 "${DESTINC}"; \
-	    echo "${CHOWN} root.root ${DESTINC}"; \
-	    ${CHOWN} root.root "${DESTINC}"; \
-	fi
-	-@if [ ! -d "${DESTINC}/LavaRnd" -o -n "${FORCE}" ]; then \
-	    echo "${MKDIR} -p ${DESTINC}/LavaRnd"; \
-	    ${MKDIR} -p "${DESTINC}/LavaRnd"; \
-	    echo "${CHMOD} 0755 ${DESTINC}/LavaRnd"; \
-	    ${CHMOD} 0755 "${DESTINC}/LavaRnd"; \
-	    echo "${CHOWN} root.root ${DESTINC}/LavaRnd"; \
-	    ${CHOWN} root.root "${DESTINC}/LavaRnd"; \
-	fi
-	-@if [ ! -d "${DESTINC}/LavaRnd/have" -o -n "${FORCE}" ]; then \
-	    echo "${MKDIR} -p ${DESTINC}/LavaRnd/have"; \
-	    ${MKDIR} -p "${DESTINC}/LavaRnd/have"; \
-	    echo "${CHMOD} 0755 ${DESTINC}/LavaRnd/have"; \
-	    ${CHMOD} 0755 "${DESTINC}/LavaRnd/have"; \
-	    echo "${CHOWN} root.root ${DESTINC}/LavaRnd/have"; \
-	    ${CHOWN} root.root "${DESTINC}/LavaRnd/have"; \
-	fi
-	-@for i in ${BUILT_HSRC}; do \
-	    if ! ${CMP} -s "$$i" "${DESTINC}/LavaRnd/have/$$i"; then \
-		${RM} -f "${DESTINC}/LavaRnd/have/$$i.new"; \
-		${CP} -f "$$i.tmp" "${DESTINC}/LavaRnd/have/$$i.new"; \
-		${CHMOD} 0444 "${DESTINC}/LavaRnd/have/$$i.new"; \
-		${MV} -f "${DESTINC}/LavaRnd/have/$$i.new" \
-			 "${DESTINC}/LavaRnd/have/$$i"; \
-		echo "$$i installed into ${DESTINC}/LavaRnd/have/$$i"; \
-	    fi; \
-	done
 
 # dependency setup
 #

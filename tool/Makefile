@@ -38,9 +38,7 @@ CAT= cat
 CC= cc
 CHMOD= chmod
 CHOWN= chown
-CI= ci
 CMP= cmp
-CO= co
 CP= cp
 CTAGS= ctags
 DATE= date
@@ -48,7 +46,6 @@ DIRNAME= dirname
 EGREP= egrep
 FGREP= fgrep
 FIND= find
-GROUPADD= groupadd
 HEAD= head
 INSTALL= install
 LDD= ldd
@@ -63,7 +60,6 @@ SED= sed
 SORT= sort
 TAIL= tail
 TAR= tar
-USERADD= useradd
 XARGS= xargs
 
 # compile flags
@@ -86,38 +82,18 @@ CC_OPT= -O3
 #CC_DBG= -g ${CC_OPT}
 CC_DBG= -g3 ${CC_OPT}
 
-# where to install
+# DESTLIB	run-time library search path (rpath) built into programs
 #
-# DESTBIN	Locally installed program bin directory
-# DESTSBIN	Locally installed program etc directory and daemons
-# DESTLIB	Locally installed local libraries
-# DESTINC	Locally installed *.h header files
-# DOCDIR	System wide documentation directory
-# TOOLDIR	Where LavaRnd tools are installed (usually DESTBIN/lavatool)
-# RC_DIR	Where the rc startup scripts are installed
-# CFGDIR	LavaRnd configuration directory
-#
-DESTBIN= /usr/bin
-DESTSBIN= /usr/sbin
 DESTLIB= /usr/lib
-DESTINC= /usr/include
-DOCDIR= /usr/share/doc
-TOOLDIR= ${DESTBIN}/lavatool
-RC_DIR= /etc/rc.d/init.d
-CFGDIR= /etc/LavaRnd
 
 # user and host information
 #
 # LAVARND_VIDEODEV	special device file for the LavaRnd webcam
 # LAVARND_CAMTYPE	camera type (use a name given by: tool/camset list all)
-# LAVARND_USER		username under which lavapool other lavarnd daemons run
-# LAVARND_GROUP		group under which lavapool other lavarnd daemons run
 # LAVAPOOL_CHROOT	lavapool chroots under this directory at startup
 #
 LAVARND_VIDEODEV=/dev/video0
 LAVARND_CAMTYPE= pwc730
-LAVARND_USER=lava
-LAVARND_GROUP=lava
 LAVAPOOL_CHROOT=/
 
 # distribution
@@ -197,7 +173,7 @@ FORCE=
 #=-=-= start of Makefile rules =-=-=#
 #####################################
 
-all: ${TARGETS} install.sed dist.sed COPYING COPYING-LGPL
+all: ${TARGETS} dist.sed COPYING COPYING-LGPL
 
 imgtally.o: imgtally.c chi_tbl.h
 	${CC} ${CFLAGS} -Wno-unused-variable imgtally.c -c
@@ -515,40 +491,12 @@ tags: ${BUILT_SRC} Makefile
 
 clean:
 	${RM} -f ${OBJS}
-	${RM} -f install.sed dist.sed tmpfile
+	${RM} -f dist.sed tmpfile
 	${RM} -rf skel ${DIST}
 
 clobber: clean
 	${RM} -f ${BUILT_SRC}
 	${RM} -f ${TRYRND} ${PROGS}
-
-install: all
-	@if [ ! -d "${DESTBIN}" -o -n "${FORCE}" ]; then \
-	    echo "${MKDIR} -p ${DESTBIN}"; \
-	    ${MKDIR} -p "${DESTBIN}"; \
-	    echo "${CHMOD} 0755 ${DESTBIN}"; \
-	    ${CHMOD} 0755 "${DESTBIN}"; \
-	    echo "${CHOWN} root.root ${DESTBIN}"; \
-	    ${CHOWN} root.root "${DESTBIN}"; \
-	fi
-	@if [ ! -d "${TOOLDIR}" -o -n "${FORCE}" ]; then \
-	    echo "${MKDIR} -p ${TOOLDIR}"; \
-	    ${MKDIR} -p "${TOOLDIR}"; \
-	    echo "${CHMOD} 0755 ${TOOLDIR}"; \
-	    ${CHMOD} 0755 "${TOOLDIR}"; \
-	    echo "${CHOWN} root.root ${TOOLDIR}"; \
-	    ${CHOWN} root.root "${TOOLDIR}"; \
-	fi
-	@for file in ${TARGETS}; do \
-	    i="`${BASENAME} $$file`"; \
-	    if ! ${CMP} -s "$$file" "${TOOLDIR}/$$i"; then \
-		${RM} -f "${TOOLDIR}/$$i.new"; \
-		${CP} "$$file" "${TOOLDIR}/$$i.new"; \
-		${CHMOD} 0555 "${TOOLDIR}/$$i.new"; \
-		${MV} -f "${TOOLDIR}/$$i.new" "${TOOLDIR}/$$i"; \
-		echo "$$i installed into ${TOOLDIR}/$$i"; \
-	    fi; \
-	done
 
 # ccflags - output C compiler flag values
 #
@@ -570,20 +518,6 @@ ccflags:
 	@echo "${BASESUBDIST} LDFLAGS= ${LDFLAGS}"
 	@echo "${BASESUBDIST} LSUF= ${LSUF}"
 	@echo "${BASESUBDIST} LDIR= ${LDIR}"
-
-# How to modify things as they are installed on the local system
-#
-# Modify scripts and source, prior to compiling or installing,
-# according to this Makefile's varablies.
-#
-install.sed: Makefile
-	@echo building $@
-	@(echo 's:^LAVARND_VIDEODEV=.*:LAVARND_VIDEODEV=${LAVARND_VIDEODEV}:'; \
-	  echo 's:^LAVARND_USER=.*:LAVARND_USER=${LAVARND_USER}:'; \
-	  echo 's:^LAVARND_GROUP=.*:LAVARND_GROUP=${LAVARND_GROUP}:'; \
-	  echo 's:^LAVAPOOL_CHROOT=.*:LAVAPOOL_CHROOT=${LAVAPOOL_CHROOT}:'; \
-	) > $@
-	@echo $@ built
 
 # How to modify things as they are distributed for source code release
 #

@@ -3,6 +3,25 @@
 This is a running log of what happens when the code is built and run on a
 current system. Newest entries go at the top.
 
+## 2026-11-12 — Upstream's install rules removed
+
+The top-level `make install` became the systemd install
+(`scripts/system-install.sh`), which left upstream's per-directory install
+machinery unreachable. Removed it:
+
+- the `install` and `install.sed` rules in every subdirectory Makefile, plus
+  `daemon/`'s `acct_setup` (it created a `lava` user and group) and
+  `usb_setup` (`/etc/hotplug/usb` scripts)
+- `daemon/LavaRnd.rc` (SysV init script) and `daemon/pwc` (hotplug module
+  script). `/etc/hotplug` has been gone from Linux for years.
+- the variables only they used (`DESTBIN`, `DESTSBIN`, `DESTINC`, `DOCDIR`,
+  `TOOLDIR`, `RC_DIR`, `CFGDIR`, `LAVARND_USER`, `LAVARND_GROUP`,
+  `GROUPADD`, `USERADD`, `CI`, `CO`, the hotplug ones), and their
+  pass-downs to sub-makes
+
+`DESTLIB` stays, because it is the `-rpath` built into the programs, not
+an install path. `make dist` and its `dist.sed` are untouched.
+
 ## 2026-11-12 — lavapool exits when the camera goes away
 
 Unplugging the QuickCam from a running `lavapool` (x86 box, system install)

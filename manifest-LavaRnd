@@ -4,7 +4,6 @@ Makefile
 README-first
 daemon/COPYING
 daemon/COPYING-LGPL
-daemon/LavaRnd.rc
 daemon/Makefile
 daemon/cfg.lavapool
 daemon/cfg_lavapool.c
@@ -21,7 +20,6 @@ daemon/lavaurl.c
 daemon/listener.c
 daemon/pool.c
 daemon/pool.h
-daemon/pwc
 daemon/simple_url.c
 daemon/simple_url.h
 doc/BUGS

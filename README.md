@@ -85,9 +85,6 @@ documents the Perl API and `trickle`, which this fork has removed.
 
 ## To do
 
-- **Old install rules.** Upstream's per-directory `install` rules (SysV init
-  script, `/usr/lib`, RCS check-ins) are no longer reached from `make install`
-  and could be removed.
 
 ## Installing system-wide (root)
 
