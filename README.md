@@ -2,13 +2,25 @@
 
 This is an unofficial fork of **LavaRnd™ 0.1.3**, a random number generator by
 Landon Curt Noll and Simon Cooper. It makes random numbers from the noise a
-webcam's sensor produces when the lens is covered. The goal of this fork is to
-get it building and running on a current Linux system.
+webcam's sensor produces when the lens is covered. Upstream stopped in 2003,
+and its code only worked with a handful of webcams of that era on Linux 2.4.
+
+This fork brings it up to date:
+
+- **It runs on current Linux.** The camera code was rewritten for V4L2, and
+  the build is clean with current gcc.
+- **It works with today's webcams.** A new driver supports standard USB Video
+  Class (UVC) cameras, which is almost every USB webcam sold now, alongside
+  the original Philips `pwc` cameras. See [Cameras](#cameras).
+- **It runs on x86-64 and on a Raspberry Pi** (aarch64).
+- **It installs as systemd services** that run unprivileged, with an
+  entropy-crediting feed into the kernel's random pool.
+- **Python replaces Perl:** a pure-Python client library and `trickle`
+  daemon.
 
 - Original project: <https://www.lavarand.org/> (also <http://www.LavaRnd.org/>)
 - Original source: <https://sourceforge.net/projects/lavarnd/>
-- Fork status: **not working yet.** The tree currently holds the unmodified
-  upstream release. See [Status](#status).
+- Fork status: **working.** See [Status](#status).
 
 This fork is not affiliated with or endorsed by the original authors.
 
@@ -41,16 +53,46 @@ code no longer builds or runs on a current Linux system:
    udev rules.
 
 The generator core, the `lavapool` daemon and the C client library are mostly
-portable C. Our current plan is to keep these and replace the camera layer.
+portable C. This fork keeps them and replaces the camera layer.
+
+## Cameras
+
+LavaRnd needs a camera whose sensor noise it can read raw: gain and exposure
+locked at maximum, all automatic processing off, and the lens covered. Each
+camera model gets a preset (the settings that produce the most noise) and
+sanity-check limits measured from that camera, which reject frames that look
+wrong, such as a camera returning blank or repeated frames.
+
+| Camera type  | Camera                         | Driver     | Status |
+|--------------|--------------------------------|------------|--------|
+| `qcpro4000`  | Logitech QuickCam Pro 4000     | `pwc`      | Calibrated by this fork; tested on x86-64 and Raspberry Pi |
+| `c270`       | Logitech Webcam C270           | `uvcvideo` | **New in this fork.** Preset and limits measured by this fork |
+| `uvcgeneric` | Any UVC webcam                 | `uvcvideo` | **New in this fork.** Generic preset; sanity checks off until you calibrate it |
+| `pwc730`     | Logitech QuickCam 3000 Pro     | `pwc`      | Upstream's limits; untested on V4L2 |
+| `pwc740`     | Philips 740                    | `pwc`      | Upstream's limits; untested on V4L2 |
+
+`LD_LIBRARY_PATH=lib/shared tool/camset list all` lists them. Upstream's
+`dsbc100` (D-Link DSB-C100, `ov511` driver) was dropped: that kernel driver
+no longer exists.
+
+**Adding another UVC camera.** Start with `uvcgeneric`. Then use the C270's
+work as a model: find the settings that give the most frame-to-frame noise,
+run `tool/camsanity` for a long calibration, and add a preset and limits to
+`lib/uvc_drvr.c`. [`PORTING.md`](PORTING.md) records how the C270 and the
+QuickCam were done. Calibration belongs to the camera model, not the
+computer: the QuickCam's limits held unchanged on the Raspberry Pi.
 
 ## Goals
+
+These were the fork's goals at the start. All are done; see [Status](#status).
 
 - Build without errors on a current Linux distribution (first target: Rocky
   Linux 9, kernel 5.14, gcc 11).
 - Replace the V4L1 capture code with V4L2, setting the camera through standard
   V4L2 controls.
 - Keep working with `pwc` cameras (tested on a Logitech QuickCam Pro 4000), and
-  if practical add support for ordinary UVC webcams.
+  add support for ordinary UVC webcams (done: `uvcvideo` driver, Logitech
+  C270 preset).
 - Replace the SysV init scripts with systemd units.
 - **Remove Perl entirely.** Upstream's only scripting interface is a Perl API
   (`perllib/`), and its `trickle` daemon is a Perl script. Far fewer people use
@@ -85,6 +127,8 @@ documents the Perl API and `trickle`, which this fork has removed.
 
 ## To do
 
+Nothing is outstanding. Known limits: only the cameras above have been
+tested, and there is no `.deb` or `.rpm` package; install from source.
 
 ## Installing system-wide (root)
 
