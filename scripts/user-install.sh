@@ -3,7 +3,7 @@
 # user-install.sh - install lavapool and trickle as systemd user services,
 #		    no root needed
 #
-# Run from the top of a built source tree (after `make all CC_WARN=-Wall`):
+# Run from the top of a built source tree (after `make all`):
 #
 #	scripts/user-install.sh [camtype] [videodev]
 #

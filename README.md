@@ -70,7 +70,7 @@ Build and runtime findings are recorded in [`PORTING.md`](PORTING.md).
 | Commit / tag    | What it is                                     |
 |-----------------|------------------------------------------------|
 | `upstream-0.1.3`| The unmodified 0.1.3 release, as downloaded (see below) |
-| `main`          | Builds on Rocky 9 with `make all CC_WARN=-Wall`. Perl has been removed. The `pwc` camera driver now uses V4L2, and a new `uvc` driver supports ordinary USB webcams. Tested with a Logitech QuickCam Pro 4000 (`pwc`) and a Logitech C270 (UVC). The `lavapool` daemon runs unprivileged as a systemd user service. A pure-Python client library is in [`python/`](python/), and `trickle` has been rewritten in Python |
+| `main`          | Builds on Rocky 9 with `make all`, with no compiler warnings. Perl has been removed. The `pwc` camera driver now uses V4L2, and a new `uvc` driver supports ordinary USB webcams. Tested with a Logitech QuickCam Pro 4000 (`pwc`) and a Logitech C270 (UVC). The `lavapool` daemon runs unprivileged as a systemd user service. A pure-Python client library is in [`python/`](python/), and `trickle` has been rewritten in Python |
 
 The upstream release was imported from
 `LavaRnd-0.1.3.tar.gz`
@@ -92,15 +92,13 @@ documents the Perl API and `trickle`, which this fork has removed.
   (the `~/.local` files, user units and config), then build from a fresh
   clone of the repo and install as root, to confirm it compiles and installs
   cleanly with nothing left over from development.
-- **Housekeeping.** Remove the unused `PERL=`/`POD2MAN=` Makefile variables,
-  fix the remaining upstream compiler warnings, and then turn warnings back
-  into errors.
+- **Housekeeping.** Remove the unused `PERL=`/`POD2MAN=` Makefile variables.
 
 ## Running it (no root needed)
 
 Build, then install `lavapool` as a systemd user service for your account:
 
-    make all CC_WARN=-Wall
+    make all
     scripts/user-install.sh qcpro4000 /dev/video0
     systemctl --user enable --now lavapool.service
     systemctl --user enable --now trickle.service     # optional

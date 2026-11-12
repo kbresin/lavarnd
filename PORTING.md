@@ -3,6 +3,32 @@
 This is a running log of what happens when the code is built and run on a
 current system. Newest entries go at the top.
 
+## 2026-11-11 — Builds with no warnings; -Werror works again
+
+`make all` with the default `CC_WARN= -Wall -Werror` now builds cleanly
+on Rocky 9 (gcc 11), so `CC_WARN=-Wall` is no longer needed. Most of the
+roughly 140 warnings were cosmetic, but some were real bugs, fixed in their
+own commits:
+
+- **Callbacks compared as truncated ints.** The predefined `LAVACALL_*`
+  callbacks are small integers cast to function pointers, and the library
+  switched on `(int)callback`, dropping the upper 32 bits on 64-bit systems.
+  Now `LAVACALL_CASE()` compares the full `intptr_t` value.
+- **`pselect()` given a `struct timeval`.** It takes a `struct timespec`, so
+  the "tiny" waits in `rawio.c` were 1000 times shorter than intended.
+- **Salt hashed a pointer.** `system_stuff()` hashed `&sdata` (8 bytes of
+  pointer) instead of the struct, weakening the salt mixed into the output.
+- **Small ones:** an `int` overflow in the bit-difference fraction for huge
+  frames, a possibly unterminated `sun_path`, filename buffers too small for
+  large values, a missing `stdlib.h` in the endian probe, and `tryrnd`
+  passing `NULL` to `initstate()`.
+
+The rest were `%lld` used for `u_int64_t` (that's `long` on 64-bit Linux, so
+the counters are now cast where printed) and `char`/`unsigned char` pointer
+casts. Checked afterwards: `chk_lavarnd`, the `tryrnd` variants, `lavaop`
+with each callback, `camget`, `camsanity`, and `lavadump` (64 KB at 7.997
+bits/byte) on the QuickCam.
+
 ## 2026-11-11 — ov511 driver removed
 
 The `ov511` driver (camera type `dsbc100`, the D-Link DSB-C100) used the V4L1
