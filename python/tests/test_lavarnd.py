@@ -38,7 +38,7 @@ class FakeLavapool:
     replies. ``fail_first`` makes that many connections use "close" first.
     """
 
-    def __init__(self, maxrequest=65536, mode="ok", fail_first=0):
+    def __init__(self, maxrequest=65536, mode="ok", fail_first=0, port=0):
         self.maxrequest = maxrequest
         self.mode = mode
         self.fail_first = fail_first
@@ -73,7 +73,7 @@ class FakeLavapool:
             allow_reuse_address = True
             daemon_threads = True
 
-        self.server = Server(("127.0.0.1", 0), Handler)
+        self.server = Server(("127.0.0.1", port), Handler)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
 
     @property
@@ -206,6 +206,38 @@ class PoolTests(unittest.TestCase):
         pool = lavarnd.LavaPool(c, retries=0, fallback=lambda n: b"")
         with self.assertRaises(lavarnd.LavaRndError):
             pool.read(4)
+
+    def test_refused_attempts_are_spaced_out(self):
+        # A refused connection fails at once; each retry must still wait out
+        # the failed attempt's deadline (lavapool may be starting up), and
+        # there is no wait after the last attempt.
+        c = lavarnd.Config(lavapool=f"127.0.0.1:{unused_port()}",
+                           return_min_wait=2.0, return_max_wait=6.0)
+        pool = lavarnd.LavaPool(c, retries=2, fallback=lambda n: b"\x00" * n)
+        sleeps = []
+        pool._clock = lambda: 100.0
+        pool._sleep = sleeps.append
+        self.assertEqual(pool.read(4), b"\x00" * 4)
+        self.assertEqual(sleeps, [2.0, 4.0])
+
+    def test_reaches_lavapool_that_starts_late(self):
+        port = unused_port()
+        c = lavarnd.Config(lavapool=f"127.0.0.1:{port}", return_retries=3,
+                           return_min_wait=0.2, return_max_wait=0.4)
+        late = {}
+
+        def start():
+            late["srv"] = FakeLavapool(port=port).__enter__()
+
+        timer = threading.Timer(0.3, start)
+        timer.start()
+        try:
+            data = lavarnd.LavaPool(c).read(8)
+        finally:
+            timer.join()
+            if "srv" in late:
+                late["srv"].__exit__(None, None, None)
+        self.assertEqual(len(data), 8)
 
     def test_timeouts_grow_from_min_to_max(self):
         pool = lavarnd.LavaPool(lavarnd.Config(return_min_wait=2.0, return_max_wait=6.0),

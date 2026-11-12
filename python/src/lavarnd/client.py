@@ -31,7 +31,11 @@ class LavaPool:
     giving up. The default comes from the config's ``return_retries`` (3);
     ``None`` means keep trying forever (the C library's "retry" policy).
     Each attempt has an overall deadline that grows linearly from
-    the config's ``return_min_wait`` to ``return_max_wait``.
+    the config's ``return_min_wait`` to ``return_max_wait``. An attempt that
+    fails early (for example, connection refused while lavapool is still
+    starting) waits out the rest of its deadline before the next one, so
+    retries are spread out like the C library's rather than made back to
+    back.
 
     ``fallback``, if given, is called as ``fallback(n)`` to supply bytes when
     every attempt has failed, for example ``os.urandom``. Without it a
@@ -53,6 +57,8 @@ class LavaPool:
         self.fallback = fallback
         self.fallback_bytes = 0
         self._lock = threading.Lock()
+        self._sleep = time.sleep
+        self._clock = time.monotonic
 
     def read(self, n: int) -> bytes:
         """Return ``n`` random bytes.
@@ -79,13 +85,18 @@ class LavaPool:
     def _read_chunk(self, n: int) -> bytes:
         attempt = 0
         while True:
+            timeout = self._timeout(attempt)
+            started = self._clock()
             try:
-                return fetch(self.config.address, n, self._timeout(attempt))
+                return fetch(self.config.address, n, timeout)
             except OSError as err:
                 last_error = err
             attempt += 1
             if self.retries is not None and attempt > self.retries:
                 break
+            left = started + timeout - self._clock()
+            if left > 0:
+                self._sleep(left)
         if self.fallback is not None:
             data = self.fallback(n)
             if len(data) != n:

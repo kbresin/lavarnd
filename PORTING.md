@@ -3,6 +3,17 @@
 This is a running log of what happens when the code is built and run on a
 current system. Newest entries go at the top.
 
+## 2026-11-11 — Python client retries are spaced out
+
+After a restart, `lavapool` takes about 4.6 s (camera warm-up) before it
+listens. `trickle`, started right after it, got "connection refused" and
+skipped a top-up, because the Python client made all its attempts back to
+back: its timeouts only bound slow connections, and a refused one fails at
+once. The C library (`raw_random()` in `lib/fetchlava.c`) sleeps before each
+retry. The client now does the same: an attempt that fails early waits out the
+rest of its deadline before the next one. With the default config (3 retries,
+2–6 s) that is about 10 s of retrying, enough to cover the start-up.
+
 ## 2026-11-11 — QuickCam retest after the V4L2 refactor
 
 With the QuickCam plugged back in, the `pwc` driver (now using
