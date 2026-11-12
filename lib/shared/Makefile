@@ -37,6 +37,10 @@ AWK= awk
 BASENAME= basename
 CAT= cat
 CC= cc
+# Link shared libraries through the compiler driver, not bare ld, so libgcc
+# is linked in: on aarch64, long double arithmetic (ldrandom) needs its
+# helpers such as __floatunditf.
+LD= ${CC}
 CHMOD= chmod
 CHOWN= chown
 CI= ci

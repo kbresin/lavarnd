@@ -3,6 +3,21 @@
 This is a running log of what happens when the code is built and run on a
 current system. Newest entries go at the top.
 
+## 2026-11-12 — Shared libraries linked with cc, for aarch64
+
+The first build on a Raspberry Pi (aarch64, gcc 14) failed linking
+`daemon/lavaurl`:
+
+    hidden symbol `__floatunditf' in .../libgcc.a(floatunditf.o) is referenced by DSO
+
+`LD` was never set, so `lib/shared/Makefile` linked the `.so` files with
+make's default, bare `ld`, which doesn't add `libgcc`. On x86-64 nothing
+needed it. On aarch64 `long double` is 128-bit and done in software, so
+`ldrandom()` (`(long double)random64()`) calls libgcc's `__floatunditf`,
+and the executables can't supply that hidden symbol to a library. The
+libraries are now linked through the compiler driver (`LD= ${CC}`), which
+adds `libgcc`.
+
 ## 2026-11-11 — Clean root install from a fresh clone
 
 The development (user-level) install was removed with
