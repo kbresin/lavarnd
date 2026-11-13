@@ -251,7 +251,16 @@ do_chaos_op(chaos *ch, chancycle cycle)
 	    dbg(4, "do_chaos_op",
 	    	   "select-exception close op: chan[%d] state: %s ==> %s",
 		ch->indx, STATE_NAME(ch->curstate), STATE_NAME(ch->nxtstate));
-	    close_chaos(ch);
+	    /*
+	     * Nothing reopens a closed chaos channel, so closing it quietly
+	     * here left lavapool running with no source.  This is the path
+	     * an unplugged V4L2 camera takes: the kernel's poll reports
+	     * EPOLLPRI for an unregistered device, which select() puts in
+	     * the exception set.  Exit instead, so lavapool is restarted.
+	     */
+	    chaos_force_close(ch, "select() reported an exception on the "
+			      "chaos source (camera unplugged?)", LAVAERR_IOERR);
+	    /*NOTREACHED*/
 	} else {
 	    warn("do_chaos_op",
 	    	 "ignore select-exception op: chan[%d] state: %s ==> %s",
