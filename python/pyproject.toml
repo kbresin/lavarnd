@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lavarnd"
-version = "0.2.0.dev0"
+dynamic = ["version"]
 description = "Python client for LavaRnd, a random number generator driven by webcam noise"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -22,6 +22,9 @@ lavarnd-trickle = "lavarnd.trickle:main"
 
 [project.urls]
 Source = "https://github.com/kbresin/lavarnd"
+
+[tool.setuptools.dynamic]
+version = { attr = "lavarnd.__version__" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
