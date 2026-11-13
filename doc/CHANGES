@@ -1,3 +1,58 @@
+LavaRnd version 0.2.0
+
+    13-Nov-2026
+
+    First release of the revival fork at github.com/kbresin/lavarnd.
+    It is not an upstream release; see README.md and PORTING.md for
+    the reasons behind each change.  It builds and runs on Linux
+    (tested on Rocky 9 x86-64 and Debian 13 aarch64).
+
+    Incompatible changes from 0.1.3:
+
+	Removed the Perl API (perllib), the Perl trickle and the Perl
+	test.  A Python library and a Python trickle replace them.
+
+	Removed the V4L1 ov511 camera driver.  Linux no longer has V4L1.
+
+	`make install` is now a systemd system install: lavapool and
+	trickle run as unprivileged dynamic users, with programs in
+	/usr/local/sbin and configuration in /etc/LavaRnd.  The old
+	per-directory install rules, the lava account setup and the
+	LavaRnd.rc init script are gone.  `make uninstall` reverses it.
+
+    Cameras:
+
+	Ported the pwc driver (QuickCam Pro 4000 and relatives) from
+	V4L1 to V4L2, and recalibrated its camsanity limits.
+
+	Added a uvc driver for ordinary USB webcams, with a calibrated
+	preset for the Logitech C270 and a generic preset.
+
+	lavapool now notices when the camera is unplugged and exits, so
+	systemd restarts it once the camera is back.
+
+    Python:
+
+	Added a pure-Python client library (python/) that talks to
+	lavapool directly, including a random.Random subclass.
+	Retries are spaced out so clients survive a lavapool restart.
+
+	Rewrote trickle in Python.  It can credit entropy to the
+	kernel with RNDADDENTROPY (-e BITS) when it has CAP_SYS_ADMIN.
+
+    Build:
+
+	The build is warning-free with -Wall -Werror on gcc 11 and on
+	Debian 13's gcc, which fixed real bugs: callback pointers were
+	truncated to int, pselect() got the wrong time struct, and the
+	system_stuff hash covered the pointer instead of the struct.
+
+	Shared libraries are linked with cc, so aarch64 picks up libgcc.
+
+	camsanity statistics were fixed and it now stops cleanly.
+
+    Added examples/dice, a small Flask app that rolls dice with LavaRnd.
+
 LavaRnd version 0.1.3
 
     15-Nov-2003
