@@ -113,7 +113,7 @@ How we branch, test and release is in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 | Commit / tag    | What it is                                     |
 |-----------------|------------------------------------------------|
 | `upstream-0.1.3`| The unmodified 0.1.3 release, as downloaded (see below) |
-| `v0.2.0`        | First fork release (November 2026). See [`doc/CHANGES`](doc/CHANGES) |
+| `v0.2.1`        | Latest release (November 2026). See [`doc/CHANGES`](doc/CHANGES) |
 | `main`          | Builds on Rocky 9 with `make all`, with no compiler warnings. Perl has been removed. The `pwc` camera driver now uses V4L2, and a new `uvc` driver supports ordinary USB webcams. Tested with a Logitech QuickCam Pro 4000 (`pwc`) and a Logitech C270 (UVC), on x86-64 and on a Raspberry Pi (aarch64). `make install` sets up `lavapool` and an entropy-crediting `trickle` as unprivileged systemd system services, and the user-level install still works without root. A pure-Python client library is in [`python/`](python/), and `trickle` has been rewritten in Python |
 
 The upstream release was imported from
