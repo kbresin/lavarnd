@@ -3,6 +3,46 @@
 This is a running log of what happens when the code is built and run on a
 current system. Newest entries go at the top.
 
+## 2026-11-13 — Camera unplug, tested on the Pi; select() exceptions now exit
+
+The first unplug test of 0.2.0 on the Pi (QuickCam on `pwc`, system install)
+failed the same way the x86 one had. `lavapool` kept running with no camera
+open, logged nothing, served the ~4 MB left in its pool, then timed out every
+client. The `VIDIOC_QUERYCAP` liveness check never fired.
+
+The 2026-11-12 entry below got the cause wrong: `select()` does report the
+unplug. When a V4L2 device is unregistered, the kernel's `v4l2_poll()`
+returns `EPOLLERR | EPOLLHUP | EPOLLPRI`, and `select()` puts `EPOLLPRI` in
+the exception set. `chan_select()` handles exceptions before reads, and
+`do_chaos_op()` answered a chaos exception with a bare `close_chaos()`,
+logged only at debug level 4. Nothing reopens a chaos channel, and the
+liveness check only runs while the channel is reading, so it never ran
+again.
+
+Fix: a chaos exception now goes through `chaos_force_close()`, like the read
+errors, so `lavapool` logs why and exits for systemd to restart it. The
+liveness check stays as a backstop for a camera that stops responding without
+`select()` noticing.
+
+Retest on the Pi (2026-11-13):
+
+- 11:16:13.038: the kernel logged the USB disconnect.
+- 11:16:13.040: `lavapool` logged "select() reported an exception on the
+  chaos source (camera unplugged?)" and exited 14.
+- Every 10 s while the camera was out: systemd restarted it, and it exited 3
+  at startup (`unable to open qcpro4000 camera on /dev/video0: -107`).
+- 11:19:05.710: `pwc` registered the camera as `video0` again.
+- 11:19:07: the 17th restart opened it, and `lavapool` served data.
+- Reading as fast as possible for 40 s afterwards got 1.2 MB with no errors,
+  from a pool that had only been refilling for a minute and a half, so the
+  camera was really feeding it. `trickle` and the dice demo stayed up
+  throughout.
+
+The camera came back as `video0` because that was the lowest free number. If
+another V4L2 device grabbed it first, `lavapool` would open the wrong device.
+A `/dev/v4l/by-id/` path in `cfg.lavapool` would avoid that, but it is
+untested.
+
 ## 2026-11-12 — Upstream's install rules removed
 
 The top-level `make install` became the systemd install
