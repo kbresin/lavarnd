@@ -106,6 +106,7 @@ These were the fork's goals at the start. All are done; see [Status](#status).
   reason.
 
 Build and runtime findings are recorded in [`PORTING.md`](PORTING.md).
+How we branch, test and release is in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Status
 
