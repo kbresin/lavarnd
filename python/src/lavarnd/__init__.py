@@ -33,7 +33,7 @@ __all__ = [
     "random_bytes",
 ]
 
-__version__ = "0.2.0.dev0"
+__version__ = "0.2.0"
 
 _default_pool: Optional[LavaPool] = None
 _default_lock = threading.Lock()
