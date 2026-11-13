@@ -1,3 +1,15 @@
+LavaRnd version 0.2.1
+
+    13-Nov-2026
+
+    Fixed lavapool hanging when its camera is unplugged.  The kernel
+    reports an unplugged V4L2 camera to select() as an exception, and
+    lavapool answered that by quietly closing the camera and carrying
+    on with no source: it served what was left in its pool, then timed
+    out every client.  It now logs the reason and exits, so systemd
+    restarts it, and it comes back once the camera is plugged in again.
+    Tested by unplugging a QuickCam Pro 4000 on a Raspberry Pi.
+
 LavaRnd version 0.2.0
 
     13-Nov-2026
