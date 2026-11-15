@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}LavaRnd dot plot{% endblock %}
+{% block content %}
+<style>
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 40rem) { .pair { grid-template-columns: 1fr; } }
+  .pair .card { margin: 0; }
+</style>
+  <h1>LavaRnd dot plot</h1>
+  <p class="sub">
+    Each pair of random bytes is a point (x, y) on a 256 × 256 grid. Good
+    random data fills the square evenly, with no pattern; the brighter a
+    cell, the more often it has been hit.
+  </p>
+
+  <div class="controls">
+    <button id="toggle" class="primary">Stop</button>
+    <button id="clear">Clear</button>
+    <span id="status" class="status muted" role="status"></span>
+  </div>
+
+  <div class="pair">
+    <section class="card">
+      <header><h2>LavaRnd</h2></header>
+      <canvas id="lava" class="square" width="256" height="256"
+              aria-label="Dot plot of LavaRnd byte pairs"></canvas>
+      <div class="stats" id="lava-stats"></div>
+    </section>
+    <section class="card">
+      <header><h2>A weak generator</h2></header>
+      <canvas id="lcg" class="square" width="256" height="256"
+              aria-label="Dot plot of the low byte of a linear congruential generator"></canvas>
+      <div class="stats" id="lcg-stats"></div>
+    </section>
+  </div>
+
+  <details>
+    <summary>About this demo</summary>
+    <p>
+      The weak generator is the linear congruential generator from the C
+      standard's example <code>rand()</code>
+      (<code>x = x × 1103515245 + 12345 mod 2³²</code>), taking the low
+      byte of each output. Those low 8 bits repeat every 256 outputs, so the
+      points it plots repeat too and only 128 of the 65,536 cells are ever
+      hit, however long you watch. The standard's example avoids this by
+      returning higher bits, but code that used the low bits of a generator
+      like this got exactly this pattern. It runs in your browser and draws
+      the same number of points as the LavaRnd plot.
+    </p>
+    <p>
+      Expected coverage is how much of the grid truly random points should
+      have hit by now: 1 − e<sup>−n/65536</sup> for n points.
+    </p>
+  </details>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='dots.js') }}"></script>{% endblock %}

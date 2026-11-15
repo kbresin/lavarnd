@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}LavaRnd tally statistics{% endblock %}
+{% block content %}
+  <h1>LavaRnd tally statistics</h1>
+  <p class="sub">
+    A pool of {{ "{:,}".format(pool_size) }} bytes of LavaRnd data. Every
+    {{ "{:g}".format(interval) }} seconds the oldest {{ "{:,}".format(chunk_size) }}
+    bytes are replaced with new data and the tallies are recounted.
+  </p>
+
+  <div id="status" class="status" role="status" data-max="{{ frames }}">Loading…</div>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Scale">
+      <button id="mag" aria-pressed="true">Magnified</button>
+      <button id="unmag" aria-pressed="false">Unmagnified</button>
+    </div>
+    <button id="play" disabled>Pause</button>
+    <div class="scrub">
+      <input id="scrub" type="range" min="0" max="0" value="0" aria-label="Frame" disabled>
+      <button id="latest" disabled>Latest</button>
+    </div>
+  </div>
+  <p id="scale-note" class="muted caption"></p>
+
+  <section class="card">
+    <header><h2>4-bit tally</h2><span class="stat" id="stat16"></span></header>
+    <p class="muted caption">
+      Every byte is split into two 4-bit values, 0 to F, giving
+      {{ "{:,}".format(pool_size * 2) }} of them. Each value should turn up
+      about {{ "{:,}".format(pool_size * 2 // 16) }} times (the dashed line);
+      each bar shows how far its count is above or below that.
+    </p>
+    <canvas id="c16" aria-label="Bar chart of how often each 4-bit value occurs"></canvas>
+    <p class="readout" id="read16"></p>
+  </section>
+  <section class="card">
+    <header><h2>8-bit tally</h2><span class="stat" id="stat256"></span></header>
+    <p class="muted caption">
+      The same for whole bytes: each of the 256 values, 0x00 to 0xff, should
+      turn up about {{ "{:,}".format(pool_size // 256) }} times.
+    </p>
+    <canvas id="c256" class="tall" aria-label="Bar chart of how often each 8-bit value occurs"></canvas>
+    <p class="readout" id="read256"></p>
+  </section>
+  <section class="card">
+    <header><h2>Count of 1 bits, last {{ frames }} frames</h2><span class="stat" id="stat2"></span></header>
+    <p class="muted caption">
+      Half of the pool's {{ "{:,}".format(pool_size * 8) }} bits should be 1.
+      Each point is one frame; the dot marks the frame shown above.
+    </p>
+    <canvas id="c2" aria-label="Line chart of the number of 1 bits in the pool per frame"></canvas>
+    <p class="readout" id="read2"></p>
+  </section>
+
+  <details>
+    <summary>About this demo</summary>
+    <p>
+      If LavaRnd's output is uniform, every 4-bit value should appear about
+      1/16 of the time, every byte value about 1/256 of the time, and half
+      of all bits should be 1. The <strong>magnified</strong> view zooms in
+      on the expected value (the line) so you can see the small, random
+      deviations from it. The shaded bands are ±1σ and ±2σ: about 68% and
+      95% of bars should land inside them. The <strong>unmagnified</strong>
+      view starts the axis at zero, where the plots are almost completely
+      flat because the data is so evenly distributed.
+    </p>
+    <p>
+      The movie plays the last {{ frames }} frames, oldest first. The large
+      number in the corner is the frame number; frame 0 is the first full
+      pool after the server started. χ² is the chi-squared statistic for the
+      tally, and p is the chance that truly uniform data would give a value
+      at least that large. p should be spread evenly between 0 and 1 from
+      frame to frame, so a small p now and then is expected.
+    </p>
+    <p>
+      A rebuild of the <code>randstatd</code> demo from the original
+      lavarand.org site (2003), which showed the same plots as animated GIFs.
+    </p>
+  </details>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='tally.js') }}"></script>{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}LavaRnd distribution{% endblock %}
+{% block content %}
+  <h1>LavaRnd distribution</h1>
+  <p class="sub">
+    A histogram that fills in as random values arrive. The line is what
+    perfectly random data would give; the bars settle onto it as the count
+    grows.
+  </p>
+
+  <div class="controls">
+    <div class="seg" role="group" aria-label="What to plot">
+      <button data-k="1" aria-pressed="true">1 byte</button>
+      <button data-k="2" aria-pressed="false">Sum of 2</button>
+      <button data-k="8" aria-pressed="false">Sum of 8</button>
+    </div>
+    <button id="toggle" class="primary">Stop</button>
+    <span id="status" class="status muted" role="status"></span>
+  </div>
+
+  <section class="card">
+    <header><h2 id="heading"></h2><span class="stat" id="chi"></span></header>
+    <canvas id="hist" class="tall" aria-label="Histogram of random values against the expected distribution"></canvas>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <details>
+    <summary>About this demo</summary>
+    <p>
+      A single random byte is equally likely to be any value from 0 to 255,
+      so its histogram is flat. Add two bytes and middle totals become more
+      likely than extreme ones (there are more ways to make 255 than 0), so
+      the shape is a triangle. Add eight and it's already close to a bell
+      curve: the central limit theorem at work.
+    </p>
+    <p>
+      Values are grouped into 64 bins. χ² compares the bars with the line;
+      p is the chance that truly random data would be at least this far off.
+      It's shown once every bin expects at least 5 values.
+    </p>
+  </details>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='dist.js') }}"></script>{% endblock %}

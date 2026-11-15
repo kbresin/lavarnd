@@ -1,0 +1,48 @@
+[Unit]
+Description=LavaRnd demos: rebuilds of the demos from the original lavarand.org site
+Documentation=https://github.com/kbresin/lavarnd/tree/main/examples/demos
+Wants=lavapool.service
+After=lavapool.service
+
+[Service]
+Type=simple
+DynamicUser=yes
+WorkingDirectory=/opt/lavarnd-demos
+# The app (*.py, templates/, static/) lives in /opt/lavarnd-demos; the lavarnd
+# package comes from `make install` (/usr/local/lib/lavarnd/python).
+Environment=PYTHONPATH=/opt/lavarnd-demos:/usr/local/lib/lavarnd/python
+# Served through a reverse proxy (see README), so listen on localhost only and
+# trust the proxy's X-Forwarded-* headers, including X-Forwarded-Prefix.
+Environment=LAVARND_DEMOS_PROXIED=1
+# One worker: each process would keep its own 4 MB tally pool and byte budget.
+# A tally frame every 10 s rather than the original 864 s (which made a
+# 24-hour movie), so the movie fills in about 17 minutes. Each frame replaces
+# 40,000 bytes, so this reads about 4 KB/s from lavapool; use 864 for a
+# camera that can't spare that.
+Environment=LAVARND_TALLY_INTERVAL=10
+# Uncomment to change the byte budget shared by the pages that draw in the
+# browser.
+#Environment=LAVARND_DEMOS_BYTES_PER_SEC=8192
+ExecStart=/usr/bin/python3 -m gunicorn --bind 127.0.0.1:8098 --workers 1 --threads 4 --access-logfile - 'app:create_app()'
+Restart=on-failure
+RestartSec=5
+
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target
