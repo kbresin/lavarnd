@@ -9,12 +9,14 @@ import threading
 import unittest
 
 import lavarnd
+import lotto
 from app import create_app
 from tally import Collector, TallyPool, byte_counts, nibble_counts, ones
 
 
 # Each demo page: its path, its heading, and its script (if any).
 PAGES = (
+    ("/lotto", b"LavaRnd lotto numbers", None),
     ("/tally", b"LavaRnd tally statistics", "tally.js"),
 )
 
@@ -135,6 +137,34 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual(pool.filled, 0)
 
 
+class LottoTests(unittest.TestCase):
+    def test_picks_are_distinct_sorted_and_in_range(self):
+        rng = random.Random(5)
+        for game in lotto.GAMES.values():
+            for ticket in lotto.pick(rng, game, 3):
+                self.assertEqual(len(ticket), len(game.drums))
+                for drum, nums in zip(game.drums, ticket):
+                    self.assertEqual(len(nums), drum.count)
+                    self.assertEqual(len(set(nums)), drum.count)
+                    self.assertEqual(nums, sorted(nums))
+                    self.assertTrue(all(1 <= n <= drum.high for n in nums))
+
+    def test_every_number_can_come_up(self):
+        game = lotto.custom_game(2, 10)
+        seen = {n for t in lotto.pick(random.Random(6), game, 10) for n in t[0]}
+        seen |= {n for t in lotto.pick(random.Random(7), game, 10) for n in t[0]}
+        self.assertEqual(seen, set(range(1, 11)))
+
+    def test_custom_limits(self):
+        self.assertEqual(lotto.custom_game(6, 6).rules, "6 of 1–6")
+        for count, high in ((0, 10), (11, 10), (21, 100), (1, 0), (1, 1001)):
+            with self.assertRaises(lotto.LottoError, msg=(count, high)):
+                lotto.custom_game(count, high)
+        for tickets in (0, 11):
+            with self.assertRaises(lotto.LottoError):
+                lotto.pick(random.Random(1), lotto.GAMES["uklotto"], tickets)
+
+
 class AppTests(unittest.TestCase):
     def make(self, src=None, **kw):
         app = create_app(src or source(), tally_pool=1000, tally_chunk=100,
@@ -156,6 +186,39 @@ class AppTests(unittest.TestCase):
         for name in ("style.css", "common.js") + scripts:
             with client.get("/static/" + name) as resp:
                 self.assertEqual(resp.status_code, 200, name)
+
+    def test_lotto_page(self):
+        _, _, client = self.make()
+        self.assertNotIn(b'class="ball', client.get("/lotto").data)
+        resp = client.get("/lotto?game=powerball&tickets=2")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data.count(b'class="ball extra"'), 2)
+        self.assertEqual(resp.data.count(b'class="ball"'), 10)
+        resp = client.get("/lotto?game=custom&count=3&high=9")
+        self.assertIn(b"Pick 3 of 9", resp.data)
+
+    def test_lotto_errors_are_escaped(self):
+        _, _, client = self.make()
+        resp = client.get("/lotto?game=<b>x</b>")
+        self.assertEqual(resp.status_code, 400)
+        self.assertNotIn(b"<b>x</b>", resp.data)
+        self.assertIn(b"&lt;b&gt;x&lt;/b&gt;", resp.data)
+        self.assertEqual(client.get("/lotto?game=uklotto&tickets=x").status_code, 400)
+
+    def test_lotto_api(self):
+        _, _, client = self.make()
+        data = client.get("/api/lotto?game=euromillions&tickets=3").get_json()
+        self.assertEqual((data["game"], data["drums"], data["source"]),
+                         ("euromillions", ["main numbers", "Lucky Stars"], "lavarnd"))
+        self.assertEqual([len(t[0]) for t in data["tickets"]], [5, 5, 5])
+        self.assertEqual(client.get("/api/lotto?game=nope").status_code, 400)
+
+    def test_lavapool_down_is_503_not_a_fallback(self):
+        _, _, client = self.make(unavailable)
+        self.assertEqual(client.get("/api/lotto").status_code, 503)
+        resp = client.get("/lotto?game=powerball")
+        self.assertEqual(resp.status_code, 503)
+        self.assertIn(b"LavaRnd is unavailable", resp.data)
 
     def test_frames_api(self):
         _, pool, client = self.make()

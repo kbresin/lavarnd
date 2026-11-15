@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}LavaRnd lotto numbers{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+<style>
+  form.lotto { display: grid; gap: .75rem; }
+  form.lotto label { display: flex; flex-direction: column; gap: .25rem; font-size: .9rem; color: var(--muted); }
+  form.lotto .row { display: flex; flex-wrap: wrap; gap: .75rem; align-items: end; }
+  form.lotto .row label { flex: 1 1 8rem; }
+  #custom[hidden] { display: none; }
+  .ticket { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: .6rem 0;
+            border-top: 1px solid var(--line); }
+  .ticket:first-of-type { border-top: 0; }
+  .ball { display: inline-grid; place-items: center; width: 2.4rem; height: 2.4rem; border-radius: 50%;
+          font-weight: 700; font-variant-numeric: tabular-nums; background: var(--bg);
+          border: 2px solid var(--line); }
+  .ball.extra { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .plus { color: var(--muted); padding: 0 .15rem; }
+  .ticket .n { color: var(--muted); font-size: .85rem; width: 1.5rem; }
+</style>
+  <h1>LavaRnd lotto numbers</h1>
+  <p class="sub">Lottery picks drawn with LavaRnd. Every combination is equally likely, which is also true of the ones you'd pick yourself.</p>
+
+  <form class="lotto card" action="{{ url_for('lotto') }}" method="get">
+    <div class="row">
+      <label>Game
+        <select name="game" id="game">
+          {% for g in games %}
+          <option value="{{ g.key }}" {{ "selected" if args.get("game", "powerball") == g.key }}>{{ g.name }} ({{ g.rules }})</option>
+          {% endfor %}
+          <option value="custom" {{ "selected" if args.get("game") == "custom" }}>Custom</option>
+        </select>
+      </label>
+      <label style="flex: 0 1 6rem">Tickets
+        <input name="tickets" type="number" min="1" max="{{ max_tickets }}" value="{{ args.get('tickets', 1) }}">
+      </label>
+    </div>
+    <div class="row" id="custom" {{ "hidden" if args.get("game") != "custom" }}>
+      <label>Pick how many
+        <input name="count" type="number" min="1" max="20" value="{{ args.get('count', 6) }}">
+      </label>
+      <label>from 1 to
+        <input name="high" type="number" min="1" max="1000" value="{{ args.get('high', 49) }}">
+      </label>
+    </div>
+    <div><button class="primary">Draw</button></div>
+  </form>
+
+  {% if error %}
+    <div class="card error">{{ error }}</div>
+  {% elif result %}
+    <section class="card" aria-live="polite">
+      <header><h2>{{ game.name }}</h2><span class="stat">{{ game.rules }}</span></header>
+      {% for ticket in result %}
+      <div class="ticket">
+        {% if result | length > 1 %}<span class="n">{{ loop.index }}</span>{% endif %}
+        {% for drum in ticket %}
+          {% set extra = not loop.first %}
+          {% if extra %}<span class="plus" title="{{ game.drums[loop.index0].name }}">+</span>{% endif %}
+          {% for n in drum %}<span class="ball{{ ' extra' if extra }}">{{ n }}</span>{% endfor %}
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  <p class="muted">
+    Lottery rules change now and then; these are the rules as of 2025.
+    The same picks are available as JSON from
+    <code>{{ url_for('api_lotto') }}?game=powerball&amp;tickets=2</code>.
+  </p>
+{% endblock %}
+{% block scripts %}
+<script>
+  const game = document.getElementById("game"), custom = document.getElementById("custom");
+  game.addEventListener("change", () => { custom.hidden = game.value !== "custom"; });
+</script>
+{% endblock %}

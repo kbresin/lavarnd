@@ -17,8 +17,10 @@ process would keep its own tally pool and read from lavapool separately.
 Pages:
 
     /                   index of demos
+    /lotto              lottery numbers (server-side picks)
     /tally              tally statistics (shared rolling pool)
 
+    /api/lotto?game=powerball&tickets=2     JSON picks
     /api/frames                             tally frames as JSON
 
 Settings (environment variables):
@@ -35,15 +37,24 @@ from __future__ import annotations
 import os
 from typing import Callable, Optional
 
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import lavarnd
+import lotto
 import tally
 
 DEMOS = (
+    ("lotto", "Lotto numbers", "Lottery picks drawn with LavaRnd."),
     ("tally", "Tally statistics", "A day of 4-bit, 8-bit and 1-bit tallies over a rolling 4 MB pool."),
 )
+
+
+class _SourcePool:
+    """Adapts a ``source(n)`` function to what LavaRandom expects."""
+
+    def __init__(self, source: Callable[[int], bytes]) -> None:
+        self.read = source
 
 
 def _env(name: str, default, kind=float):
@@ -65,6 +76,7 @@ def create_app(source: Optional[Callable[[int], bytes]] = None, *,
     """
     app = Flask(__name__)
     source = source or lavarnd.random_bytes
+    rng = lavarnd.LavaRandom(_SourcePool(source), bufsize=256)
 
     pool = tally.TallyPool(
         source,
@@ -74,7 +86,7 @@ def create_app(source: Optional[Callable[[int], bytes]] = None, *,
     interval = tally_interval or _env("LAVARND_TALLY_INTERVAL", tally.INTERVAL)
     if interval <= 0:
         raise ValueError("tally interval must be > 0")
-    app.config.update(POOL=pool)
+    app.config.update(POOL=pool, RNG=rng)
     if start:
         app.config["COLLECTOR"] = tally.Collector(pool, interval)
         app.config["COLLECTOR"].start()
@@ -84,9 +96,59 @@ def create_app(source: Optional[Callable[[int], bytes]] = None, *,
     if proxied:
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
+    def unavailable(err):
+        return f"LavaRnd is unavailable: {err}"
+
     @app.get("/")
     def index():
         return render_template("index.html", demos=DEMOS)
+
+    # ---- lotto ----------------------------------------------------------
+
+    def lotto_request():
+        """Read game settings from the query string; returns (game, tickets)."""
+        key = request.args.get("game", "powerball")
+        try:
+            tickets = int(request.args.get("tickets", "1"))
+            count = int(request.args.get("count", "6"))
+            high = int(request.args.get("high", "49"))
+        except ValueError:
+            raise lotto.LottoError("tickets, count and high must be whole numbers") from None
+        if key == "custom":
+            return lotto.custom_game(count, high), tickets
+        if key not in lotto.GAMES:
+            raise lotto.LottoError(f"unknown game {key!r}")
+        return lotto.GAMES[key], tickets
+
+    @app.get("/lotto", endpoint="lotto")
+    def lotto_page():
+        result = error = game = None
+        status = 200
+        if request.args:
+            try:
+                game, tickets = lotto_request()
+                result = lotto.pick(rng, game, tickets)
+            except lotto.LottoError as err:
+                error, status = str(err), 400
+            except lavarnd.LavaRndError as err:
+                error, status = unavailable(err), 503
+        page = render_template("lotto.html", games=lotto.GAMES.values(), game=game,
+                               result=result, error=error, args=request.args,
+                               max_tickets=lotto.MAX_TICKETS)
+        return page, status
+
+    @app.get("/api/lotto")
+    def api_lotto():
+        try:
+            game, tickets = lotto_request()
+            picks = lotto.pick(rng, game, tickets)
+        except lotto.LottoError as err:
+            return jsonify(error=str(err)), 400
+        except lavarnd.LavaRndError as err:
+            return jsonify(error=unavailable(err)), 503
+        return jsonify(game=game.key, name=game.name, rules=game.rules,
+                       drums=[d.name for d in game.drums], tickets=picks,
+                       source="lavarnd")
 
     # ---- tally statistics ---------------------------------------------------
 

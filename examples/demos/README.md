@@ -9,6 +9,7 @@ of randomness.
 | Page     | Demo                                                                      |
 |----------|---------------------------------------------------------------------------|
 | `/`      | Index of demos                                                            |
+| `/lotto` | **Lotto numbers**: picks for Powerball, Mega Millions, SuperLotto Plus, EuroMillions, UK Lotto or a custom "pick K of N" |
 | `/tally` | **Tally statistics**: the original `randstatd` demo; see below            |
 
 The originals were CGI scripts that drew GIFs. The Wayback Machine kept the
@@ -16,6 +17,15 @@ pages describing them but not their output, so these are rebuilt from those
 descriptions rather than copied.
 
 ## How they get random data
+
+**Lotto** picks on the server with `LavaRandom.sample`, which draws random
+bits and rejects out-of-range values, so every combination is equally
+likely. The same picks are available as JSON:
+
+```
+$ curl -s 'http://localhost:8098/api/lotto?game=powerball&tickets=1'
+{"drums":["white balls","Powerball"],"game":"powerball","name":"Powerball","rules":"5 of 1\u201369 + 1 of 1\u201326","source":"lavarnd","tickets":[[[4,19,33,51,62],[17]]]}
+```
 
 **Tally statistics** keeps a pool of 4,000,000 bytes. Every 864 seconds it
 replaces the oldest 40,000 bytes with new data, so the whole pool turns
