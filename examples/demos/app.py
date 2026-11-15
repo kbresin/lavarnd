@@ -21,12 +21,16 @@ Pages:
     /tally              tally statistics (shared rolling pool)
 
     /api/lotto?game=powerball&tickets=2     JSON picks
+    /api/bytes?n=1024                       raw bytes (n <= 4096) for the
+                                            pages that draw in the browser
     /api/frames                             tally frames as JSON
 
 Settings (environment variables):
 
     LAVARND_DEMOS_PROXIED        1 to trust one reverse proxy's X-Forwarded-*
                                  headers, including X-Forwarded-Prefix
+    LAVARND_DEMOS_BYTES_PER_SEC  /api/bytes budget shared by all viewers
+                                 (default 8192)
     LAVARND_TALLY_INTERVAL       seconds between tally frames (default 864)
     LAVARND_TALLY_POOL           tally pool size in bytes (default 4000000)
     LAVARND_TALLY_CHUNK          bytes replaced per frame (default 40000)
@@ -34,20 +38,56 @@ Settings (environment variables):
 
 from __future__ import annotations
 
+import math
 import os
+import threading
+import time
 from typing import Callable, Optional
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import lavarnd
 import lotto
 import tally
 
+MAX_BYTES = 4096
+BYTES_PER_SEC = 8192
+
 DEMOS = (
     ("lotto", "Lotto numbers", "Lottery picks drawn with LavaRnd."),
     ("tally", "Tally statistics", "A day of 4-bit, 8-bit and 1-bit tallies over a rolling 4 MB pool."),
 )
+
+
+class Budget:
+    """A token bucket: ``rate`` bytes per second, bursting to ``burst``.
+
+    Shared by every viewer, so the canvas demos together can't take more
+    than ``rate`` bytes a second from lavapool however many people watch.
+    """
+
+    def __init__(self, rate: float, burst: Optional[float] = None,
+                 clock: Callable[[], float] = time.monotonic) -> None:
+        if rate <= 0:
+            raise ValueError("rate must be > 0")
+        self.rate = rate
+        self.burst = burst if burst is not None else max(2 * rate, 2 * MAX_BYTES)
+        self.clock = clock
+        self.tokens = self.burst
+        self.last = clock()
+        self.lock = threading.Lock()
+
+    def take(self, n: int) -> float:
+        """Spend ``n`` bytes. Returns 0 if allowed, else seconds to wait."""
+        with self.lock:
+            now = self.clock()
+            self.tokens = min(self.burst, self.tokens + (now - self.last) * self.rate)
+            self.last = now
+            if self.tokens >= n:
+                self.tokens -= n
+                return 0.0
+            return (n - self.tokens) / self.rate
 
 
 class _SourcePool:
@@ -66,6 +106,7 @@ def create_app(source: Optional[Callable[[int], bytes]] = None, *,
                tally_interval: Optional[float] = None,
                tally_pool: Optional[int] = None,
                tally_chunk: Optional[int] = None,
+               bytes_per_sec: Optional[float] = None,
                start: bool = True, proxied: Optional[bool] = None) -> Flask:
     """Build the app and (unless ``start`` is False) start the tally collector.
 
@@ -77,6 +118,7 @@ def create_app(source: Optional[Callable[[int], bytes]] = None, *,
     app = Flask(__name__)
     source = source or lavarnd.random_bytes
     rng = lavarnd.LavaRandom(_SourcePool(source), bufsize=256)
+    budget = Budget(bytes_per_sec or _env("LAVARND_DEMOS_BYTES_PER_SEC", BYTES_PER_SEC))
 
     pool = tally.TallyPool(
         source,
@@ -86,7 +128,7 @@ def create_app(source: Optional[Callable[[int], bytes]] = None, *,
     interval = tally_interval or _env("LAVARND_TALLY_INTERVAL", tally.INTERVAL)
     if interval <= 0:
         raise ValueError("tally interval must be > 0")
-    app.config.update(POOL=pool, RNG=rng)
+    app.config.update(POOL=pool, BUDGET=budget, RNG=rng)
     if start:
         app.config["COLLECTOR"] = tally.Collector(pool, interval)
         app.config["COLLECTOR"].start()
@@ -149,6 +191,27 @@ def create_app(source: Optional[Callable[[int], bytes]] = None, *,
         return jsonify(game=game.key, name=game.name, rules=game.rules,
                        drums=[d.name for d in game.drums], tickets=picks,
                        source="lavarnd")
+
+    # ---- canvas demos -----------------------------------------------------
+
+    @app.get("/api/bytes")
+    def api_bytes():
+        try:
+            n = int(request.args.get("n", "1024"))
+        except ValueError:
+            n = 0
+        if not 1 <= n <= MAX_BYTES:
+            return Response(f"n must be 1 to {MAX_BYTES}\n", 400, mimetype="text/plain")
+        wait = budget.take(n)
+        if wait:
+            return Response("busy: too many random bytes requested; try again shortly\n",
+                            429, {"Retry-After": str(math.ceil(wait))}, mimetype="text/plain")
+        try:
+            data = source(n)
+        except lavarnd.LavaRndError as err:
+            return Response(unavailable(err) + "\n", 503, mimetype="text/plain")
+        return Response(data, mimetype="application/octet-stream",
+                        headers={"Cache-Control": "no-store"})
 
     # ---- tally statistics ---------------------------------------------------
 

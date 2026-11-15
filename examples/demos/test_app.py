@@ -10,7 +10,7 @@ import unittest
 
 import lavarnd
 import lotto
-from app import create_app
+from app import Budget, create_app
 from tally import Collector, TallyPool, byte_counts, nibble_counts, ones
 
 
@@ -165,8 +165,22 @@ class LottoTests(unittest.TestCase):
                 lotto.pick(random.Random(1), lotto.GAMES["uklotto"], tickets)
 
 
+class BudgetTests(unittest.TestCase):
+    def test_refills_at_rate_up_to_burst(self):
+        now = [0.0]
+        b = Budget(1000, burst=2000, clock=lambda: now[0])
+        self.assertEqual(b.take(1500), 0)
+        self.assertAlmostEqual(b.take(1000), 0.5)   # 500 left, needs 500 more
+        now[0] = 0.5
+        self.assertEqual(b.take(1000), 0)
+        now[0] = 100
+        self.assertEqual(b.take(2000), 0)            # capped at the burst
+        self.assertGreater(b.take(1), 0)
+
+
 class AppTests(unittest.TestCase):
     def make(self, src=None, **kw):
+        kw.setdefault("bytes_per_sec", 100_000)
         app = create_app(src or source(), tally_pool=1000, tally_chunk=100,
                          tally_interval=5, start=False, **kw)
         return app, app.config["POOL"], app.test_client()
@@ -175,6 +189,7 @@ class AppTests(unittest.TestCase):
         _, _, client = self.make()
         index = client.get("/").data
         self.assertIn(b"LavaRnd demos", index)
+        self.assertIn(b'"/api/bytes"', index)
         for path, heading, script in PAGES:
             resp = client.get(path)
             self.assertEqual(resp.status_code, 200, path)
@@ -213,8 +228,27 @@ class AppTests(unittest.TestCase):
         self.assertEqual([len(t[0]) for t in data["tickets"]], [5, 5, 5])
         self.assertEqual(client.get("/api/lotto?game=nope").status_code, 400)
 
+    def test_bytes_api(self):
+        _, _, client = self.make()
+        resp = client.get("/api/bytes?n=4096")
+        self.assertEqual((resp.status_code, len(resp.data)), (200, 4096))
+        self.assertEqual(resp.mimetype, "application/octet-stream")
+        self.assertEqual(resp.headers["Cache-Control"], "no-store")
+        self.assertEqual(len(client.get("/api/bytes").data), 1024)
+        for n in ("0", "4097", "x"):
+            self.assertEqual(client.get("/api/bytes?n=" + n).status_code, 400, n)
+
+    def test_bytes_budget_is_shared(self):
+        _, _, client = self.make(bytes_per_sec=1000)  # burst: 8192 bytes
+        self.assertEqual(client.get("/api/bytes?n=4096").status_code, 200)
+        self.assertEqual(client.get("/api/bytes?n=4096").status_code, 200)
+        resp = client.get("/api/bytes?n=4096")
+        self.assertEqual(resp.status_code, 429)
+        self.assertGreaterEqual(int(resp.headers["Retry-After"]), 1)
+
     def test_lavapool_down_is_503_not_a_fallback(self):
         _, _, client = self.make(unavailable)
+        self.assertEqual(client.get("/api/bytes?n=16").status_code, 503)
         self.assertEqual(client.get("/api/lotto").status_code, 503)
         resp = client.get("/lotto?game=powerball")
         self.assertEqual(resp.status_code, 503)

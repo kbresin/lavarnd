@@ -74,5 +74,72 @@ window.Lava = (function () {
 
   const fmtP = (p) => (p < 0.001 ? p.toExponential(1) : p.toFixed(3));
 
-  return { fmt, fmtP, colors, setup, gammaln, gammaq };
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // Pull random bytes from /api/bytes: `chunk` bytes about every `every` ms,
+  // until `limit` bytes in all. Pauses while the tab is hidden, and backs off
+  // when the server is busy (429) or lavapool is down (503).
+  //   onBytes(Uint8Array)   new data
+  //   onStatus(text, isError) progress; text "" clears it
+  //   onDone()              limit reached
+  function stream({ chunk, every, limit, onBytes, onStatus, onDone }) {
+    let running = false, got = 0, run = 0;
+
+    async function loop(id) {
+      while (running && id === run) {
+        if (got >= limit) { running = false; onDone && onDone(); return; }
+        if (document.hidden) {
+          onStatus("Paused while this tab is hidden.", false);
+          await new Promise((r) => document.addEventListener("visibilitychange", r, { once: true }));
+          continue;
+        }
+        const started = performance.now();
+        const n = Math.min(chunk, limit - got);
+        let wait = every;
+        try {
+          const resp = await fetch(`${window.LAVA.bytes}?n=${n}`, { cache: "no-store" });
+          if (resp.status === 429) {
+            const secs = Number(resp.headers.get("Retry-After")) || 2;
+            onStatus(`The server is busy sharing LavaRnd with other viewers; retrying in ${secs} s.`, false);
+            wait = secs * 1000;
+          } else if (!resp.ok) {
+            onStatus((await resp.text()).trim() || `HTTP ${resp.status}`, true);
+            wait = 10000;
+          } else {
+            const bytes = new Uint8Array(await resp.arrayBuffer());
+            if (!running || id !== run) return;
+            got += bytes.length;
+            onStatus("", false);
+            onBytes(bytes);
+            wait = every - (performance.now() - started);
+          }
+        } catch (err) {
+          onStatus(`Can't reach the server: ${err.message}`, true);
+          wait = 10000;
+        }
+        await sleep(Math.max(0, wait));
+      }
+    }
+
+    return {
+      get running() { return running; },
+      get got() { return got; },
+      start() { if (!running) { running = true; loop(++run); } },
+      stop() { running = false; },
+      reset() { running = false; got = 0; run++; },
+    };
+  }
+
+  // Wire a Start/Stop button and a status line to a stream.
+  function controls(s, button, status) {
+    const show = () => { button.textContent = s.running ? "Stop" : "Start"; };
+    button.addEventListener("click", () => { s.running ? s.stop() : s.start(); show(); });
+    const onStatus = (text, isError) => {
+      status.textContent = text;
+      status.classList.toggle("error", !!isError);
+    };
+    return { show, onStatus };
+  }
+
+  return { fmt, fmtP, colors, setup, gammaln, gammaq, stream, controls, sleep };
 })();

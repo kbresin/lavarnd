@@ -27,6 +27,16 @@ $ curl -s 'http://localhost:8098/api/lotto?game=powerball&tickets=1'
 {"drums":["white balls","Powerball"],"game":"powerball","name":"Powerball","rules":"5 of 1\u201369 + 1 of 1\u201326","source":"lavarnd","tickets":[[[4,19,33,51,62],[17]]]}
 ```
 
+**Pages that draw in the browser** fetch raw bytes from `/api/bytes?n=N`
+(at most 4096 a request), about 2–4 KB a second per open page. Each page
+stops after a few hundred KB and pauses while its tab is hidden. All
+viewers share one budget,
+`LAVARND_DEMOS_BYTES_PER_SEC` (default 8192 bytes a second, with bursts up
+to twice that). Past it, `/api/bytes` answers **429** with `Retry-After`
+and the pages wait, so the demos never take more than that from `lavapool`
+(and from anything else using it, such as `trickle`), however many people
+are watching.
+
 **Tally statistics** keeps a pool of 4,000,000 bytes. Every 864 seconds it
 replaces the oldest 40,000 bytes with new data, so the whole pool turns
 over about once a day, and records a frame: how often each 4-bit and 8-bit
@@ -44,6 +54,7 @@ numbers start again at 0.
 
 | Variable                      | Default   | Meaning                                    |
 |-------------------------------|-----------|--------------------------------------------|
+| `LAVARND_DEMOS_BYTES_PER_SEC` | `8192`    | `/api/bytes` budget shared by all viewers  |
 | `LAVARND_DEMOS_PROXIED`       | unset     | `1` to trust one proxy's `X-Forwarded-*`   |
 | `LAVARND_TALLY_INTERVAL`      | `864`     | seconds between tally frames               |
 | `LAVARND_TALLY_POOL`          | `4000000` | tally pool size in bytes                   |
@@ -80,7 +91,7 @@ After `make install` (which installs the `lavarnd` package under
 
 It runs gunicorn with **one** worker (and 4 threads) as an unprivileged
 dynamic user, listening on `127.0.0.1:8098` only. Keep it to one worker:
-each process would keep its own tally pool.
+each process would keep its own tally pool and byte budget.
 
 Put a reverse proxy in front of it. For Apache on a path prefix (needs
 `mod_proxy`, `mod_proxy_http` and `mod_headers`):

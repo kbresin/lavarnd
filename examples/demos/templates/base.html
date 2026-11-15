@@ -11,7 +11,7 @@
   {% if request.endpoint != "index" %}<a class="back" href="{{ url_for('index') }}">← LavaRnd demos</a>{% endif %}
   {% block content %}{% endblock %}
 </main>
-<script>window.LAVA = {{ {"frames": url_for("api_frames")} | tojson }};</script>
+<script>window.LAVA = {{ {"bytes": url_for("api_bytes"), "frames": url_for("api_frames")} | tojson }};</script>
 <script src="{{ url_for('static', filename='common.js') }}"></script>
 {% block scripts %}{% endblock %}
 </body>
