@@ -1,0 +1,68 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
+/* Shared styles for the LavaRnd demos. Black and orange are a nod to the
+   original lavarand.org site. */
+:root {
+  --bg: #fdfaf6; --fg: #1d1b19; --muted: #6b645c; --card: #ffffff; --line: #e7e0d8;
+  --accent: #c2410c; --bar: #ea580c; --bar-neg: #b45309; --expect: #1d1b19;
+  --band1: rgba(234, 88, 12, .10); --band2: rgba(234, 88, 12, .05); --bad: #b91c1c;
+  --frame: rgba(29, 27, 25, .10); --plot-bg: #fffaf3; --contrast: #2563eb;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d0b0a; --fg: #f3eee8; --muted: #a59d93; --card: #171412; --line: #2e2824;
+    --accent: #ff9900; --bar: #ff9900; --bar-neg: #f97316; --expect: #f3eee8;
+    --band1: rgba(255, 153, 0, .13); --band2: rgba(255, 153, 0, .06); --bad: #f87171;
+    --frame: rgba(243, 238, 232, .09); --plot-bg: #0d0b0a; --contrast: #60a5fa;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg);
+       font: 16px/1.5 system-ui, sans-serif; }
+main { max-width: 60rem; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+main.narrow { max-width: 38rem; }
+a { color: var(--accent); }
+.back { display: inline-block; margin-bottom: 1rem; font-size: .9rem; text-decoration: none; }
+.back:hover { text-decoration: underline; }
+h1 { margin: 0 0 .25rem; font-size: 1.6rem; }
+h2 { margin: 0; font-size: 1.05rem; }
+p { margin: 0 0 1rem; }
+.sub, .muted { color: var(--muted); }
+.status { margin: 1rem 0; min-height: 1.5em; }
+.status.error, .error { color: var(--bad); }
+progress { width: 100%; height: .6rem; accent-color: var(--accent); }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem;
+            margin: 1rem 0 1.25rem; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line);
+       border-radius: .5rem; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--bg); }
+button, input, select { font: inherit; border-radius: .5rem; border: 1px solid var(--line);
+         background: var(--card); color: var(--fg); padding: .35rem .8rem; }
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
+button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.scrub { display: flex; align-items: center; gap: .5rem; flex: 1 1 14rem; }
+.scrub input { flex: 1; min-width: 0; accent-color: var(--accent); padding: 0; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: .75rem;
+        padding: 1rem; margin-bottom: 1rem; }
+.card header { display: flex; flex-wrap: wrap; justify-content: space-between;
+               gap: .25rem 1rem; align-items: baseline; margin-bottom: .5rem; }
+.stat { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .9rem; }
+.stats { display: flex; flex-wrap: wrap; gap: .25rem 1.5rem; margin-top: .75rem;
+         font-variant-numeric: tabular-nums; color: var(--muted); font-size: .9rem; }
+.stats b { color: var(--fg); font-weight: 600; }
+canvas { display: block; width: 100%; height: 15rem; }
+canvas.tall { height: 17rem; }
+canvas.square { aspect-ratio: 1; height: auto; max-width: 32rem; margin: 0 auto;
+                image-rendering: pixelated; }
+details { margin-top: 1.5rem; color: var(--muted); }
+details p { margin: .5rem 0; }
+code { font-size: .9em; }
+/* demo index */
+ul.demos { list-style: none; padding: 0; margin: 1.5rem 0; display: grid; gap: .75rem; }
+ul.demos a { display: block; text-decoration: none; color: inherit; background: var(--card);
+             border: 1px solid var(--line); border-radius: .75rem; padding: .9rem 1rem; }
+ul.demos a:hover { border-color: var(--accent); }
+ul.demos strong { color: var(--accent); display: block; }
+ul.demos span { color: var(--muted); }

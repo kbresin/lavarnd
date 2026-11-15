@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+  <h1>LavaRnd demos</h1>
+  <p class="sub">
+    Every number on these pages comes from LavaRnd: random data made from
+    the noise of a webcam sensor with its lens cap on.
+  </p>
+  <ul class="demos">
+    {% for key, title, blurb in demos %}
+    <li><a href="{{ url_for(key) }}"><strong>{{ title }}</strong><span>{{ blurb }}</span></a></li>
+    {% endfor %}
+  </ul>
+  <p class="muted">
+    Rebuilds of the demos from the original lavarand.org site (2003). The
+    haiku, CorpSpeak and live-camera demos aren't back yet.
+  </p>
+{% endblock %}

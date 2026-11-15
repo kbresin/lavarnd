@@ -1,0 +1,88 @@
+# LavaRnd demos
+
+Rebuilds of the demos from the original lavarand.org site (2003), as one
+small Flask app. Every random number comes from a running `lavapool` through
+the [`lavarnd`](../../python/) Python library. If `lavapool` can't be
+reached the demos say so (HTTP 503) rather than quietly using another source
+of randomness.
+
+| Page     | Demo                                                                      |
+|----------|---------------------------------------------------------------------------|
+| `/`      | Index of demos                                                            |
+| `/tally` | **Tally statistics**: the original `randstatd` demo; see below            |
+
+The originals were CGI scripts that drew GIFs. The Wayback Machine kept the
+pages describing them but not their output, so these are rebuilt from those
+descriptions rather than copied.
+
+## How they get random data
+
+**Tally statistics** keeps a pool of 4,000,000 bytes. Every 864 seconds it
+replaces the oldest 40,000 bytes with new data, so the whole pool turns
+over about once a day, and records a frame: how often each 4-bit and 8-bit
+value occurs in the pool and how many of its bits are 1. These are the
+original demo's numbers. The page shows the last 100 frames (24 hours) as
+a movie, like the original's animated GIFs, magnified around the expected
+value with ±1σ and ±2σ bands, or unmagnified (`/tally#unmagnified`),
+where it's almost completely flat. Its data is at `/api/frames`. All
+viewers share the one pool, so `lavapool` sees 4,000,000 bytes at start
+(about 4½ minutes at a QuickCam's ~15 KB/s) and then about 46 bytes a
+second. The pool lives in memory, so a restart refills it and frame
+numbers start again at 0.
+
+## Settings
+
+| Variable                      | Default   | Meaning                                    |
+|-------------------------------|-----------|--------------------------------------------|
+| `LAVARND_DEMOS_PROXIED`       | unset     | `1` to trust one proxy's `X-Forwarded-*`   |
+| `LAVARND_TALLY_INTERVAL`      | `864`     | seconds between tally frames               |
+| `LAVARND_TALLY_POOL`          | `4000000` | tally pool size in bytes                   |
+| `LAVARND_TALLY_CHUNK`         | `40000`   | bytes replaced per tally frame             |
+
+The tally pool size must be a multiple of the chunk size.
+
+## Try it
+
+With `lavapool` running on this machine:
+
+    pip install flask                       # or: apt install python3-flask
+    cd examples/demos
+    PYTHONPATH=../../python/src LAVARND_TALLY_INTERVAL=5 flask --app app run
+
+and open <http://localhost:5000/>. Tests (no `lavapool` needed):
+
+    PYTHONPATH=../../python/src python3 -m unittest -v test_app
+
+## Run it as a service
+
+After `make install` (which installs the `lavarnd` package under
+`/usr/local/lib/lavarnd/python`), as root, from the top of the source tree:
+
+    apt install python3-flask python3-gunicorn
+    install -d /opt/lavarnd-demos/templates /opt/lavarnd-demos/static
+    install -m 0644 examples/demos/*.py /opt/lavarnd-demos/
+    install -m 0644 examples/demos/templates/* /opt/lavarnd-demos/templates/
+    install -m 0644 examples/demos/static/* /opt/lavarnd-demos/static/
+    rm -f /opt/lavarnd-demos/test_app.py
+    install -m 0644 examples/demos/lavarnd-demos.service /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable --now lavarnd-demos.service
+
+It runs gunicorn with **one** worker (and 4 threads) as an unprivileged
+dynamic user, listening on `127.0.0.1:8098` only. Keep it to one worker:
+each process would keep its own tally pool.
+
+Put a reverse proxy in front of it. For Apache on a path prefix (needs
+`mod_proxy`, `mod_proxy_http` and `mod_headers`):
+
+    RedirectMatch 301 ^/demos$ /demos/
+    <Location /demos/>
+        ProxyPass        http://127.0.0.1:8098/
+        ProxyPassReverse http://127.0.0.1:8098/
+        RequestHeader set X-Forwarded-Prefix "/demos"
+        RequestHeader set X-Forwarded-Proto "https"
+    </Location>
+
+The unit sets `LAVARND_DEMOS_PROXIED=1`, so the app trusts these
+`X-Forwarded-*` headers and puts the prefix in its links. That's only safe
+because nothing but the proxy can reach port 8098.
