@@ -20,6 +20,7 @@ Pages:
     /lotto              lottery numbers (server-side picks)
     /dots               dot plot (draws in the browser)
     /walk               random walk (draws in the browser)
+    /dist               distribution (draws in the browser)
     /tally              tally statistics (shared rolling pool)
 
     /api/lotto?game=powerball&tickets=2     JSON picks
@@ -60,6 +61,7 @@ DEMOS = (
     ("lotto", "Lotto numbers", "Lottery picks drawn with LavaRnd."),
     ("dots", "Dot plot", "Random points filling a square, and what a weak generator looks like."),
     ("walk", "Random walk", "A walk on a grid where each step is two random bits."),
+    ("dist", "Distribution", "Histograms that fill in live: uniform, triangle and bell shapes."),
     ("tally", "Tally statistics", "A day of 4-bit, 8-bit and 1-bit tallies over a rolling 4 MB pool."),
 )
 

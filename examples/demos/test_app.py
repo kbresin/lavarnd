@@ -19,6 +19,7 @@ PAGES = (
     ("/lotto", b"LavaRnd lotto numbers", None),
     ("/dots", b"LavaRnd dot plot", "dots.js"),
     ("/walk", b"LavaRnd random walk", "walk.js"),
+    ("/dist", b"LavaRnd distribution", "dist.js"),
     ("/tally", b"LavaRnd tally statistics", "tally.js"),
 )
 

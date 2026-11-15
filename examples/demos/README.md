@@ -12,6 +12,7 @@ of randomness.
 | `/lotto` | **Lotto numbers**: picks for Powerball, Mega Millions, SuperLotto Plus, EuroMillions, UK Lotto or a custom "pick K of N" |
 | `/dots`  | **Dot plot**: byte pairs as points on a 256 × 256 grid, next to the low byte of a C-style LCG, which only ever hits 128 cells |
 | `/walk`  | **Random walk**: two bits per step on a grid, with distance against √n    |
+| `/dist`  | **Distribution**: live histograms of 1 byte, or the sum of 2 or 8 bytes, against the exact expected shape, with χ² |
 | `/tally` | **Tally statistics**: the original `randstatd` demo; see below            |
 
 The originals were CGI scripts that drew GIFs. The Wayback Machine kept the
