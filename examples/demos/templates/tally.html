@@ -32,6 +32,7 @@
       each bar shows how far its count is above or below that.
     </p>
     <canvas id="c16" aria-label="Bar chart of how often each 4-bit value occurs"></canvas>
+    <p class="readout" id="read16"></p>
   </section>
   <section class="card">
     <header><h2>8-bit tally</h2><span class="stat" id="stat256"></span></header>
@@ -40,6 +41,7 @@
       turn up about {{ "{:,}".format(pool_size // 256) }} times.
     </p>
     <canvas id="c256" class="tall" aria-label="Bar chart of how often each 8-bit value occurs"></canvas>
+    <p class="readout" id="read256"></p>
   </section>
   <section class="card">
     <header><h2>Count of 1 bits, last {{ frames }} frames</h2><span class="stat" id="stat2"></span></header>
@@ -48,6 +50,7 @@
       Each point is one frame; the dot marks the frame shown above.
     </p>
     <canvas id="c2" aria-label="Line chart of the number of 1 bits in the pool per frame"></canvas>
+    <p class="readout" id="read2"></p>
   </section>
 
   <details>

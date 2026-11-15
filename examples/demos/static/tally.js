@@ -13,6 +13,7 @@
     scrub: $("scrub"), latest: $("latest"),
     c16: $("c16"), c256: $("c256"), c2: $("c2"),
     stat16: $("stat16"), stat256: $("stat256"), stat2: $("stat2"),
+    read16: $("read16"), read256: $("read256"), read2: $("read2"),
   };
 
   const state = {
@@ -149,6 +150,46 @@
     ctx.textAlign = "right"; ctx.fillText(`frame ${frames[n - 1].frame}`, w - pad.r, h - pad.b + 5);
   }
 
+  // ---- plain-language readouts -------------------------------------------
+
+  const signed = (x) => `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(2)}`;
+  const pct = (x) => x.toFixed(x >= 1 ? 1 : x >= 0.01 ? 2 : 3) + "%";
+  const verdict = (cls, text) => `<span class="verdict ${cls}">${text}</span>`;
+
+  // How 1σ compares with the expected count: the size of the magnification.
+  const sigmaNote = (sigma, expected, what) =>
+    `On the magnified axis 1σ is just <b>${fmt(sigma)}</b> ${what}, ` +
+    `${pct(100 * sigma / expected)} of the expected ${fmt(expected)}.`;
+
+  function tallyReadout(st, what) {
+    const share = st.p >= 0.01 ? `${Math.round(st.p * 100)}% of the time`
+      : st.p >= 0.001 ? "less than 1% of the time" : "less than 0.1% of the time";
+    const v = st.p < 0.001
+      ? verdict("bad", "very unusual") + " (random data does this about once in a thousand frames)."
+      : st.p < 0.05
+        ? verdict("warn", "unusual") + ", but random data lands here about 1 frame in 20."
+        : verdict("ok", "normal") + ".";
+    return `χ² adds up how far every bar is from the line. ` +
+      `p = <b>${fmtP(st.p)}</b>: a truly random pool would look at least this uneven ` +
+      `${share}, so this frame is ${v} ` +
+      sigmaNote(st.sigma, st.expected, `counts per ${what}`);
+  }
+
+  function onesReadout(ones, nbits, sigma, z) {
+    const diff = ones - nbits / 2;
+    const v = Math.abs(z) >= 3
+      ? verdict("bad", "very unusual") + " (random data goes past ±3σ about 1 frame in 370)."
+      : Math.abs(z) >= 2
+        ? verdict("warn", "unusual") + ", but random data goes past ±2σ about 1 frame in 20."
+        : verdict("ok", "normal") + ": random data stays within ±2σ 95% of the time.";
+    return `<b>${fmt(ones)}</b> of ${fmt(nbits)} bits are 1, ` +
+      `${fmt(Math.abs(diff))} ${diff >= 0 ? "above" : "below"} half. ` +
+      `z = <b>${signed(z)}</b> means ${Math.abs(z).toFixed(2)}σ ${diff >= 0 ? "above" : "below"}, ` +
+      `which is ${v} ` + sigmaNote(sigma, nbits / 2, "bits") +
+      ` Neighbouring frames share 99% of their data, so this line drifts slowly ` +
+      `rather than zig-zagging.`;
+  }
+
   function draw() {
     const d = state.data;
     if (!d || !d.frames.length) return;
@@ -160,10 +201,14 @@
     const every = el.c256.clientWidth < 520 ? 64 : 32;
     drawBars(el.c256, f.tally256, s256, f.frame, every, col);
     drawOnes(el.c2, d.frames, state.index, d.pool_size * 8, col);
-    el.stat16.textContent = `χ² = ${s16.chi2.toFixed(1)} (df ${s16.df}), p = ${fmtP(s16.p)}`;
-    el.stat256.textContent = `χ² = ${s256.chi2.toFixed(1)} (df ${s256.df}), p = ${fmtP(s256.p)}`;
-    const z = (f.ones - d.pool_size * 4) / (Math.sqrt(d.pool_size * 8) / 2);
-    el.stat2.textContent = `${fmt(f.ones)} of ${fmt(d.pool_size * 8)} bits, z = ${z >= 0 ? "+" : "−"}${Math.abs(z).toFixed(2)}`;
+    const nbits = d.pool_size * 8, sd1 = Math.sqrt(nbits) / 2;
+    const z = (f.ones - nbits / 2) / sd1;
+    el.stat16.textContent = `χ² = ${s16.chi2.toFixed(1)}, p = ${fmtP(s16.p)}`;
+    el.stat256.textContent = `χ² = ${s256.chi2.toFixed(1)}, p = ${fmtP(s256.p)}`;
+    el.stat2.textContent = `z = ${signed(z)}`;
+    el.read16.innerHTML = tallyReadout(s16, "value");
+    el.read256.innerHTML = tallyReadout(s256, "byte value");
+    el.read2.innerHTML = onesReadout(f.ones, nbits, sd1, z);
     el.scrub.value = state.index;
   }
 
@@ -190,12 +235,12 @@
   // The original site had separate magnified and unmagnified pages; here
   // #unmagnified in the URL picks the view, so it can still be linked to.
   const SCALE_NOTES = {
-    true: "Magnified: the axis is in standard deviations (σ) around the " +
-      "expected count, because the real differences are tiny. The shaded bands " +
-      "are ±1σ and ±2σ; about 95% of bars should land inside ±2σ, so the odd " +
-      "one outside is normal. χ² sums up a whole chart: p wanders anywhere " +
-      "from 0 to 1 from frame to frame, and only a p near 0 frame after frame " +
-      "would mean a problem.",
+    true: "Magnified: the charts zoom in on the expected count (the dashed " +
+      "line) so the tiny differences show. The axis is marked in standard " +
+      "deviations (σ), the typical size of a random wobble; under each chart " +
+      "it says how small 1σ really is. The shaded bands are ±1σ and ±2σ: " +
+      "about 95% of bars should land inside ±2σ, so the odd one outside is " +
+      "normal, and p wanders anywhere from 0 to 1 from frame to frame.",
     false: "Unmagnified: the axis starts at zero. The bars look identical " +
       "because the differences are a tiny fraction of the counts, which is " +
       "the point.",
