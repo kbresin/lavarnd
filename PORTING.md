@@ -3,6 +3,37 @@
 This is a running log of what happens when the code is built and run on a
 current system. Newest entries go at the top.
 
+## 2026-11-15 — lavapool no longer spins a core between camera checks
+
+On the Pi, `lavapool` had used 100% of one core ever since the camera check
+went in (`2dc333b`): `systemd` reported 1 day 21 h of CPU time for 45 h of
+running. Sampling `/proc` showed no voluntary sleeps at all (user 44%,
+kernel 56%), and `strace -c` counted 244,132 `pselect6` calls in a few
+seconds, each returning at once.
+
+Cause: `chaos_check_camera()` called
+`need_cycle_before(ch->indx, ch->next_alive - about_now)`, a duration of at
+most 5 s. `need_cycle_before()` takes an absolute time (`about_now` is
+seconds since the Epoch), as the frame-dump code passes it, so a few seconds
+was always "in the past" and every cycle got a zero `select()` timeout,
+including with a full pool, which should wait for a client.
+
+Fix: pass `ch->next_alive` itself. A full pool now sleeps until a client
+connects or the 5-second camera check is due.
+
+Retest on the Pi (2026-11-15, system install, QuickCam on `pwc`):
+
+- `strace -c` for 10 s: 138 `pselect6` calls, against 244,132 before.
+- `lavapool` CPU over three 10 s samples, while refilling the pool after the
+  restart: 1.3–2.3% of a core, with 4–6 voluntary sleeps a second. Its first
+  run used 9.2 s of CPU in 292 s, including filling the pool from empty.
+- Load average fell from about 1.0 to 0.14, and the SoC from 62.8 °C to
+  52.1 °C. `trickle`, the dice and the demos stayed up.
+- Unplug test: 08:45:06.543 USB disconnect; 08:45:07.519 `lavapool` logged
+  the `select()` exception and exited 14; 08:45:14.857 `pwc` registered the
+  camera as `video0` again; 08:45:17.559 the first restart opened it and
+  `lavapool` served data again.
+
 ## 2026-11-13 — Camera unplug, tested on the Pi; select() exceptions now exit
 
 The first unplug test of 0.2.0 on the Pi (QuickCam on `pwc`, system install)

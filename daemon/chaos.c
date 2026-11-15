@@ -1198,7 +1198,8 @@ chaos_check_camera(chaos *ch)
 	}
 	ch->next_alive = about_now + CAMERA_CHECK_SECS;
     }
-    need_cycle_before(ch->indx, ch->next_alive - about_now);
+    /* need_cycle_before() takes an absolute time, like next_alive */
+    need_cycle_before(ch->indx, ch->next_alive);
 }
 
 
