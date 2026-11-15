@@ -18,6 +18,7 @@ Pages:
 
     /                   index of demos
     /lotto              lottery numbers (server-side picks)
+    /dots               dot plot (draws in the browser)
     /tally              tally statistics (shared rolling pool)
 
     /api/lotto?game=powerball&tickets=2     JSON picks
@@ -56,6 +57,7 @@ BYTES_PER_SEC = 8192
 
 DEMOS = (
     ("lotto", "Lotto numbers", "Lottery picks drawn with LavaRnd."),
+    ("dots", "Dot plot", "Random points filling a square, and what a weak generator looks like."),
     ("tally", "Tally statistics", "A day of 4-bit, 8-bit and 1-bit tallies over a rolling 4 MB pool."),
 )
 
@@ -193,6 +195,11 @@ def create_app(source: Optional[Callable[[int], bytes]] = None, *,
                        source="lavarnd")
 
     # ---- canvas demos -----------------------------------------------------
+
+    for key, title, _ in DEMOS:
+        if key not in ("lotto", "tally"):  # these have their own routes
+            app.add_url_rule(f"/{key}", key,
+                             lambda key=key, title=title: render_template(f"{key}.html", title=title))
 
     @app.get("/api/bytes")
     def api_bytes():

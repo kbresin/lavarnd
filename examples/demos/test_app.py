@@ -17,6 +17,7 @@ from tally import Collector, TallyPool, byte_counts, nibble_counts, ones
 # Each demo page: its path, its heading, and its script (if any).
 PAGES = (
     ("/lotto", b"LavaRnd lotto numbers", None),
+    ("/dots", b"LavaRnd dot plot", "dots.js"),
     ("/tally", b"LavaRnd tally statistics", "tally.js"),
 )
 
