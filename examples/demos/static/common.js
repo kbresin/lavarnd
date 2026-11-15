@@ -32,6 +32,12 @@ window.Lava = (function () {
     return { ctx, w, h };
   }
 
+  // Redraw on resize and on a light/dark switch.
+  function onRedraw(canvas, draw) {
+    new ResizeObserver(() => draw()).observe(canvas);
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => draw());
+  }
+
   // ln Γ(x), Lanczos approximation
   function gammaln(x) {
     const c = [76.18009172947146, -86.50532032941677, 24.01409824083091,
@@ -141,5 +147,5 @@ window.Lava = (function () {
     return { show, onStatus };
   }
 
-  return { fmt, fmtP, colors, setup, gammaln, gammaq, stream, controls, sleep };
+  return { fmt, fmtP, colors, setup, onRedraw, gammaln, gammaq, stream, controls, sleep };
 })();

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}LavaRnd random walk{% endblock %}
+{% block content %}
+  <h1>LavaRnd random walk</h1>
+  <p class="sub">
+    A walk on a grid. Every two random bits choose the next step: right,
+    up, left or down. The path changes colour as it goes, from its start
+    (the ring) to where it is now (the dot).
+  </p>
+
+  <div class="controls">
+    <button id="toggle" class="primary">Stop</button>
+    <button id="restart">New walk</button>
+    <span id="status" class="status muted" role="status"></span>
+  </div>
+
+  <section class="card">
+    <canvas id="walk" class="square" aria-label="Path of a random walk"></canvas>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <details>
+    <summary>About this demo</summary>
+    <p>
+      After n steps a random walk is typically about √n steps from where it
+      started: the root-mean-square distance is exactly √n. The walk
+      wanders off, comes back near the start now and then, and doesn't
+      prefer any direction. A biased generator would make it drift.
+    </p>
+    <p>
+      Each byte gives four steps. The walk stops after
+      <span id="limit"></span> steps; start a new one to keep going.
+    </p>
+  </details>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='walk.js') }}"></script>{% endblock %}

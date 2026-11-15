@@ -18,6 +18,7 @@ from tally import Collector, TallyPool, byte_counts, nibble_counts, ones
 PAGES = (
     ("/lotto", b"LavaRnd lotto numbers", None),
     ("/dots", b"LavaRnd dot plot", "dots.js"),
+    ("/walk", b"LavaRnd random walk", "walk.js"),
     ("/tally", b"LavaRnd tally statistics", "tally.js"),
 )
 
