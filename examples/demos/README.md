@@ -9,7 +9,7 @@ of randomness.
 | Page     | Demo                                                                      |
 |----------|---------------------------------------------------------------------------|
 | `/`      | Index of demos                                                            |
-| `/lotto` | **Lotto numbers**: picks for Powerball, Mega Millions, SuperLotto Plus, EuroMillions, UK Lotto or a custom "pick K of N" |
+| `/lotto` | **Lotto numbers**: picks for Powerball, Mega Millions, SuperLotto Plus, State Pick 5 (Minnesota's Gopher 5), EuroMillions, UK Lotto or a custom "pick K of N" |
 | `/dots`  | **Dot plot**: byte pairs as points on a 256 × 256 grid, next to the low byte of a C-style LCG, which only ever hits 128 cells |
 | `/walk`  | **Random walk**: two bits per step on a grid, with distance against √n    |
 | `/dist`  | **Distribution**: live histograms of 1 byte, or the sum of 2 or 8 bytes, against the exact expected shape, with χ² |

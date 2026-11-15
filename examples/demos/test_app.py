@@ -158,6 +158,10 @@ class LottoTests(unittest.TestCase):
         seen |= {n for t in lotto.pick(random.Random(7), game, 10) for n in t[0]}
         self.assertEqual(seen, set(range(1, 11)))
 
+    def test_state_pick_5(self):
+        game = lotto.GAMES["statepick5"]
+        self.assertEqual((game.name, game.rules), ("State Pick 5", "5 of 1–47"))
+
     def test_custom_limits(self):
         self.assertEqual(lotto.custom_game(6, 6).rules, "6 of 1–6")
         for count, high in ((0, 10), (11, 10), (21, 100), (1, 0), (1, 1001)):

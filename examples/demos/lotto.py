@@ -46,6 +46,8 @@ GAMES: Dict[str, Game] = {g.key: g for g in (
     Game("powerball", "Powerball", (Drum("white balls", 5, 69), Drum("Powerball", 1, 26))),
     Game("megamillions", "Mega Millions", (Drum("white balls", 5, 70), Drum("Mega Ball", 1, 24))),
     Game("superlotto", "SuperLotto Plus", (Drum("numbers", 5, 47), Drum("Mega", 1, 27))),
+    # Minnesota's Gopher 5
+    Game("statepick5", "State Pick 5", (Drum("numbers", 5, 47),)),
     Game("euromillions", "EuroMillions", (Drum("main numbers", 5, 50), Drum("Lucky Stars", 2, 12))),
     Game("uklotto", "UK Lotto", (Drum("balls", 6, 59),)),
 )}
