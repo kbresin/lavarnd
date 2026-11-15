@@ -53,6 +53,11 @@ viewers share the one pool, so `lavapool` sees 4,000,000 bytes at start
 second. The pool lives in memory, so a restart refills it and frame
 numbers start again at 0.
 
+A day is a long time to wait on a web page, so the systemd unit sets
+`LAVARND_TALLY_INTERVAL=10`: the movie then fills in about 17 minutes,
+which is one full turnover of the pool, for about 4 KB a second from
+`lavapool`. Set it back to 864 for the original timing.
+
 ## Settings
 
 | Variable                      | Default   | Meaning                                    |

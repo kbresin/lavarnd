@@ -62,7 +62,7 @@ DEMOS = (
     ("dots", "Dot plot", "Random points filling a square, and what a weak generator looks like."),
     ("walk", "Random walk", "A walk on a grid where each step is two random bits."),
     ("dist", "Distribution", "Histograms that fill in live: uniform, triangle and bell shapes."),
-    ("tally", "Tally statistics", "A day of 4-bit, 8-bit and 1-bit tallies over a rolling 4 MB pool."),
+    ("tally", "Tally statistics", "4-bit, 8-bit and 1-bit tallies of a rolling 4 MB pool, played as a movie."),
 )
 
 

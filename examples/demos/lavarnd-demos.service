@@ -15,9 +15,13 @@ Environment=PYTHONPATH=/opt/lavarnd-demos:/usr/local/lib/lavarnd/python
 # trust the proxy's X-Forwarded-* headers, including X-Forwarded-Prefix.
 Environment=LAVARND_DEMOS_PROXIED=1
 # One worker: each process would keep its own 4 MB tally pool and byte budget.
-# Uncomment to change the tally timing (seconds between frames) or the byte
-# budget shared by the pages that draw in the browser.
-#Environment=LAVARND_TALLY_INTERVAL=864
+# A tally frame every 10 s rather than the original 864 s (which made a
+# 24-hour movie), so the movie fills in about 17 minutes. Each frame replaces
+# 40,000 bytes, so this reads about 4 KB/s from lavapool; use 864 for a
+# camera that can't spare that.
+Environment=LAVARND_TALLY_INTERVAL=10
+# Uncomment to change the byte budget shared by the pages that draw in the
+# browser.
 #Environment=LAVARND_DEMOS_BYTES_PER_SEC=8192
 ExecStart=/usr/bin/python3 -m gunicorn --bind 127.0.0.1:8098 --workers 1 --threads 4 --access-logfile - 'app:create_app()'
 Restart=on-failure
