@@ -48,6 +48,7 @@ button.primary { background: var(--accent); color: var(--bg); border-color: var(
         padding: 1rem; margin-bottom: 1rem; }
 .card header { display: flex; flex-wrap: wrap; justify-content: space-between;
                gap: .25rem 1rem; align-items: baseline; margin-bottom: .5rem; }
+.caption { margin: -.25rem 0 .75rem; font-size: .9rem; }
 .stat { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .9rem; }
 .stats { display: flex; flex-wrap: wrap; gap: .25rem 1.5rem; margin-top: .75rem;
          font-variant-numeric: tabular-nums; color: var(--muted); font-size: .9rem; }

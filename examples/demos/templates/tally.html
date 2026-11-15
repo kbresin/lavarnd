@@ -8,7 +8,7 @@
     bytes are replaced with new data and the tallies are recounted.
   </p>
 
-  <div id="status" class="status" role="status">Loading…</div>
+  <div id="status" class="status" role="status" data-max="{{ frames }}">Loading…</div>
 
   <div class="controls">
     <div class="seg" role="group" aria-label="Scale">
@@ -21,17 +21,32 @@
       <button id="latest" disabled>Latest</button>
     </div>
   </div>
+  <p id="scale-note" class="muted caption"></p>
 
   <section class="card">
     <header><h2>4-bit tally</h2><span class="stat" id="stat16"></span></header>
+    <p class="muted caption">
+      Every byte is split into two 4-bit values, 0 to F, giving
+      {{ "{:,}".format(pool_size * 2) }} of them. Each value should turn up
+      about {{ "{:,}".format(pool_size * 2 // 16) }} times (the dashed line);
+      each bar shows how far its count is above or below that.
+    </p>
     <canvas id="c16" aria-label="Bar chart of how often each 4-bit value occurs"></canvas>
   </section>
   <section class="card">
     <header><h2>8-bit tally</h2><span class="stat" id="stat256"></span></header>
+    <p class="muted caption">
+      The same for whole bytes: each of the 256 values, 0x00 to 0xff, should
+      turn up about {{ "{:,}".format(pool_size // 256) }} times.
+    </p>
     <canvas id="c256" class="tall" aria-label="Bar chart of how often each 8-bit value occurs"></canvas>
   </section>
   <section class="card">
     <header><h2>Count of 1 bits, last {{ frames }} frames</h2><span class="stat" id="stat2"></span></header>
+    <p class="muted caption">
+      Half of the pool's {{ "{:,}".format(pool_size * 8) }} bits should be 1.
+      Each point is one frame; the dot marks the frame shown above.
+    </p>
     <canvas id="c2" aria-label="Line chart of the number of 1 bits in the pool per frame"></canvas>
   </section>
 

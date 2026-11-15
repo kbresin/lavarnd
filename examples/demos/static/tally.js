@@ -93,11 +93,14 @@
     ctx.stroke(); ctx.setLineDash([]);
   }
 
+  // The frame number, large and faint in the corner, as on the original GIFs.
   function bigNumber(ctx, w, pad, text, col) {
     ctx.save();
-    ctx.font = "700 44px system-ui, sans-serif";
     ctx.fillStyle = col.frame; ctx.textAlign = "right"; ctx.textBaseline = "top";
-    ctx.fillText(text, w - pad.r - 4, pad.t + 2);
+    ctx.font = "600 12px system-ui, sans-serif";
+    ctx.fillText("FRAME", w - pad.r - 6, pad.t + 2);
+    ctx.font = "700 44px system-ui, sans-serif";
+    ctx.fillText(text, w - pad.r - 4, pad.t + 14);
     ctx.restore();
   }
 
@@ -186,7 +189,20 @@
 
   // The original site had separate magnified and unmagnified pages; here
   // #unmagnified in the URL picks the view, so it can still be linked to.
+  const SCALE_NOTES = {
+    true: "Magnified: the axis is in standard deviations (σ) around the " +
+      "expected count, because the real differences are tiny. The shaded bands " +
+      "are ±1σ and ±2σ; about 95% of bars should land inside ±2σ, so the odd " +
+      "one outside is normal. χ² sums up a whole chart: p wanders anywhere " +
+      "from 0 to 1 from frame to frame, and only a p near 0 frame after frame " +
+      "would mean a problem.",
+    false: "Unmagnified: the axis starts at zero. The bars look identical " +
+      "because the differences are a tiny fraction of the counts, which is " +
+      "the point.",
+  };
+
   function setMagnified(on) {
+    document.getElementById("scale-note").textContent = SCALE_NOTES[on];
     state.magnified = on;
     el.mag.setAttribute("aria-pressed", on);
     el.unmag.setAttribute("aria-pressed", !on);
@@ -236,10 +252,15 @@
       return;
     }
     const newest = d.frames[d.frames.length - 1];
-    const next = newest.time + d.interval - Date.now() / 1000;
-    el.status.textContent =
-      `${d.frames.length} frame${d.frames.length > 1 ? "s" : ""} ` +
-      `(${d.frames[0].frame}–${newest.frame}). Next frame in about ${duration(next)}.`;
+    const next = `Next frame in about ${duration(newest.time + d.interval - Date.now() / 1000)}.`;
+    const n = d.frames.length, max = Number(el.status.dataset.max);
+    if (n < max) {
+      el.status.textContent = `Collecting frames: ${n} of ${max}. ${next}` +
+        (n < 2 ? " The movie starts playing once there are two." : "");
+    } else {
+      el.status.textContent =
+        `Playing the last ${max} frames (${d.frames[0].frame}–${newest.frame}). ${next}`;
+    }
   }
 
   async function poll() {
